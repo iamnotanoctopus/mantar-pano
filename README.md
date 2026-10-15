@@ -114,7 +114,8 @@ npm run typecheck
 ## Yayın
 
 `main` dalına her push'ta GitHub Actions statik derlemeyi alıp **GitHub Pages**'e yayınlar
-(`.github/workflows/deploy.yml`). Depoda Settings → Pages → Source: **GitHub Actions** seçili olmalı.
+(`.github/workflows/deploy.yml`). İlk çalıştırmada Pages'i kendisi etkinleştirir (`configure-pages`
+`enablement: true`); el ile ayar gerekirse Settings → Pages → Source: **GitHub Actions**.
 Netlify/Vercel için: build komutu `npm run build:static`, çıktı `dist`.
 
 ## Yol haritası
