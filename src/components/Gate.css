@@ -1,0 +1,30 @@
+.gate {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.gate__card {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 28px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-pop);
+  text-align: center;
+}
+.gate__title {
+  font-size: 26px;
+}
+.gate__card .input {
+  text-align: center;
+  margin-top: 6px;
+}
+.gate__error {
+  color: var(--danger);
+  font-size: 13px;
+}

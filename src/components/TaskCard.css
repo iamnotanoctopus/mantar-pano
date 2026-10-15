@@ -1,0 +1,215 @@
+/* ------------------------------------------------------------------ Kart */
+
+.card {
+  --c: var(--c-gray);
+  --tilt: 0deg;
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 13px 14px 12px 12px;
+  cursor: pointer;
+  transform: rotate(var(--tilt));
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.card::after {
+  /* kâğıt kenarı: çok hafif sıcak degrade */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--card-sheen);
+}
+.card:hover {
+  transform: rotate(0deg) translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
+}
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Pano sütununda hafif eğiklik: elle iğnelenmiş hissi */
+.card--board {
+  padding-top: 16px;
+}
+.col__cards > *:nth-child(3n + 1) .card--board {
+  --tilt: -0.55deg;
+}
+.col__cards > *:nth-child(3n + 2) .card--board {
+  --tilt: 0.45deg;
+}
+.col__cards > *:nth-child(3n + 3) .card--board {
+  --tilt: -0.2deg;
+}
+.col__cards > *:nth-child(2n) .card--board .pin {
+  left: 58%;
+}
+.col__cards > *:nth-child(3n) .card--board .pin {
+  left: 44%;
+}
+
+/* ------------------------------------------------------------------ İğne */
+
+.pin {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #fff 0%, color-mix(in srgb, var(--c) 55%, #fff) 10%, var(--c) 45%, color-mix(in srgb, var(--c) 65%, #000) 100%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 3px 4px -1px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+.pin::after {
+  /* iğnenin kâğıt üstündeki gölgesi */
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 12px;
+  width: 9px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(40, 25, 10, 0.3);
+  filter: blur(2px);
+  transform: skewX(-20deg);
+}
+
+/* -------------------------------------------------------------- Gövde */
+
+.card__main {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.card__title {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  word-break: break-word;
+}
+.card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.card__note {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------- Onay */
+
+.card__check {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -1px;
+  border-radius: 50%;
+  border: 1.6px solid var(--line-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.card__check:hover {
+  border-color: var(--success);
+  color: var(--success);
+  transform: scale(1.06);
+}
+.card--doing .card__check {
+  border-color: var(--c-blue);
+  background: linear-gradient(90deg, var(--c-blue) 50%, transparent 50%);
+}
+.card--doing .card__check:hover {
+  background: var(--surface);
+}
+.card--done .card__check {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+.card--done .card__title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  color: var(--ink-3);
+}
+.card--done {
+  opacity: 0.72;
+}
+.card--done .pin {
+  filter: saturate(0.4);
+}
+
+/* ------------------------------------------------------- Gün etiketi */
+
+.tag--day {
+  --c: var(--c-gray);
+}
+.tag--today {
+  --c: var(--accent);
+  font-weight: 650;
+}
+.tag--soon {
+  --c: var(--c-blue);
+}
+.tag--overdue {
+  --c: var(--c-red);
+  font-weight: 650;
+}
+.tag--later {
+  --c: var(--c-gray);
+}
+.tag--dur {
+  --c: var(--c-brown);
+}
+
+.card--overdue {
+  box-shadow: var(--shadow-card), inset 3px 0 0 var(--c-red);
+}
+
+/* ------------------------------------------------------------ Liste */
+
+.card--list {
+  border-radius: var(--radius-card);
+  padding: 11px 14px 11px 12px;
+}
+.card--list .card__title {
+  font-size: 14px;
+}
+
+/* --------------------------------------------------------- Sürükleme */
+
+.card--dragging {
+  transform: rotate(1.5deg) scale(1.03);
+  box-shadow: var(--shadow-lift);
+  cursor: grabbing;
+}
+.card-ghost {
+  opacity: 0.35;
+}
