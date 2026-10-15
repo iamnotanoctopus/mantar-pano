@@ -1,0 +1,63 @@
+{
+  "name": "mantar-pano",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Notion ile canlı senkron çalışan, mantar pano hissiyatlı görev uygulaması (web).",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/src/index.ts",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "start": "NODE_ENV=production tsx server/src/index.ts",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit",
+    "test": "tsx server/test/notionRepo.test.ts",
+    "build:artifact": "vite build -c vite.artifact.config.ts && node scripts/build-artifact.mjs",
+    "build:themes": "node scripts/build-themes.mjs",
+    "build:static": "node scripts/build-static.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
+    "@hono/node-server": "^1.19.0",
+    "@tanstack/react-query": "^5.90.0",
+    "dotenv": "^17.2.0",
+    "hono": "^4.9.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.17.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/USERNAME/mantar-pano.git"
+  },
+  "keywords": [
+    "notion",
+    "kanban",
+    "cork-board",
+    "react",
+    "vite",
+    "local-first",
+    "pwa",
+    "retro",
+    "msn"
+  ],
+  "license": "MIT"
+}

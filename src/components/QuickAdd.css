@@ -1,0 +1,45 @@
+.quickadd__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1.5px dashed transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 560;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.quickadd__btn:hover {
+  background: var(--quickadd-hover);
+  border-color: var(--line-3);
+  color: var(--ink);
+}
+
+.quickadd {
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-card);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quickadd__input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 2px 2px;
+}
+.quickadd__input:focus {
+  outline: none;
+}
+.quickadd__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

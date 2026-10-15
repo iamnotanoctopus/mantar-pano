@@ -1,0 +1,67 @@
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .main {
+    padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  }
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px max(var(--gutter), env(safe-area-inset-right, 0px)) 0 max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.banner--error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+.banner--error .btn {
+  color: var(--ink);
+}
+
+/* Yükleniyor iskeleti */
+.skeleton {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 16px;
+  padding-block: 28px;
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+  overflow: hidden;
+}
+.skeleton__col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.skeleton__line,
+.skeleton__card {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--surface-3) 0%, var(--surface-2) 50%, var(--surface-3) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.skeleton__line {
+  height: 14px;
+}
+.skeleton__card {
+  height: 86px;
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
