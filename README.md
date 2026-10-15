@@ -3,6 +3,8 @@
 **A cork-board task app that syncs live with Notion — with a Retro MSN twist.**
 React 19 · Vite 7 · TypeScript · TanStack Query · dnd-kit · Hono · Web Audio API
 
+[![Build & Deploy (GitHub Pages)](https://github.com/iamnotanoctopus/mantar-pano/actions/workflows/deploy.yml/badge.svg)](https://github.com/iamnotanoctopus/mantar-pano/actions/workflows/deploy.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Notion'daki bir görev veritabanını, kâğıt kartlar ve iğnelerle bir **mantar panoya** dönüştürür.
 Üç çalışma modu vardır: tamamen tarayıcıda (**local-first**), kendi sunucunla **Notion API**
 üzerinden, ya da claude.ai içinde **sunucusuz Notion senkronu**. Dört görünüm teması, MSN
@@ -20,6 +22,18 @@ Messenger tarzı **dürtme** ve ses dosyası kullanmayan **sentezlenmiş ses efe
 > Canlı demo: **https://iamnotanoctopus.github.io/mantar-pano/** (local-first; kartlar tarayıcında kalır)
 
 ---
+
+## In English (TL;DR)
+
+Mantar Pano is a cork-board task app that syncs live with Notion: it turns a Notion task database into paper cards
+and pins on a cork board, with Board, Today, Upcoming, Calendar and All views.
+It is built with React 19, Vite 7, TypeScript, TanStack Query, dnd-kit, Hono and the Web Audio API.
+Three data modes share the same UI: a local-first static build (cards stay in your browser, with JSON export/import),
+the Notion API through your own Hono proxy, and serverless Notion sync inside claude.ai using the viewer's own Notion connector.
+It ships with four view themes (Mantar, Retro MSN, Kumsal, Cyberpunk, each in light and dark), an MSN Messenger-style
+nudge, and sound effects synthesized with the Web Audio API instead of audio files.
+Try the live demo at **https://iamnotanoctopus.github.io/mantar-pano/** (local-first; cards stay in your browser).
+Design decisions and measurements are in [docs/CASE_STUDY.md](docs/CASE_STUDY.md).
 
 ## Özellikler
 
