@@ -225,20 +225,34 @@ function SettingsMenu({ onNudge }: { onNudge: () => void }) {
     { id: "dark", label: "Koyu", Icon: IconMoon },
   ];
 
-  const exportJson = () => {
+  const exportJson = async () => {
+    const filename = `mantar-pano-${new Date().toISOString().slice(0, 10)}.json`;
+    const json = localApi.exportJson();
     try {
-      const blob = new Blob([localApi.exportJson()], { type: "application/json" });
+      // claude.ai içinde: sayfa doğrudan indiremez, "downloads" yeteneği görüntüleyene sorar.
+      const claude = (window as unknown as { claude?: { use?: (n: string) => Promise<unknown> } }).claude;
+      if (claude?.use) {
+        const dl = (await claude.use("downloads").catch(() => null)) as { save: (r: { filename: string; data: string }) => Promise<unknown> } | null;
+        if (dl) {
+          await dl.save({ filename, data: json });
+          toast.success("Kartlar JSON olarak kaydedildi.");
+        } else toast.error("Bu görünümde dosya kaydetme kapalı.");
+        return;
+      }
+      const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `mantar-pano-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 2000);
       toast.success("Kartlar JSON olarak indirildi.");
     } catch (e) {
-      toast.error(`Dışa aktarılamadı: ${(e as Error).message}`);
+      const code = (e as { code?: string })?.code;
+      if (code === "declined") return;
+      toast.error(`Dışa aktarılamadı: ${(e as Error).message ?? code ?? "bilinmeyen hata"}`);
     }
   };
 

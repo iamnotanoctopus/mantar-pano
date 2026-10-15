@@ -12,7 +12,8 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   plugins: [react(), viteSingleFile({ removeViteModuleLoader: true })],
   define: {
-    "import.meta.env.VITE_API_MODE": JSON.stringify("mcp"),
+    // ARTIFACT_MODE=local → sunucusuz, local-first demo (herkese açık paylaşılabilir)
+    "import.meta.env.VITE_API_MODE": JSON.stringify(process.env.ARTIFACT_MODE === "local" ? "local" : "mcp"),
   },
   resolve: {
     alias: [

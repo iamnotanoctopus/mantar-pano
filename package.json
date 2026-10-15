@@ -15,7 +15,8 @@
     "test": "tsx server/test/notionRepo.test.ts",
     "build:artifact": "vite build -c vite.artifact.config.ts && node scripts/build-artifact.mjs",
     "build:themes": "node scripts/build-themes.mjs",
-    "build:static": "node scripts/build-static.mjs"
+    "build:static": "node scripts/build-static.mjs",
+    "build:artifact:demo": "ARTIFACT_MODE=local vite build -c vite.artifact.config.ts && ARTIFACT_MODE=local node scripts/build-artifact.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

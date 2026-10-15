@@ -17,7 +17,9 @@ if (/<script[^>]+src=/.test(src)) throw new Error("Harici script kaldı; tek dos
 const fonts =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:opsz,wght@14..32,400..700&family=Rajdhani:wght@500;600;700&display=swap";
 
-const page = `<title>Mantar Pano</title>
+const mode = process.env.ARTIFACT_MODE === "local" ? "local" : "mcp";
+const outName = mode === "local" ? "mantar-pano-demo.html" : "mantar-pano.html";
+const page = `<title>${mode === "local" ? "Mantar Pano Demo" : "Mantar Pano"}</title>
 <link rel="stylesheet" href="${fonts}">
 <style>
 ${styles.trim()}
@@ -27,5 +29,5 @@ ${scripts.map((s) => `<script type="module">\n${s.trim()}\n</script>`).join("\n"
 `;
 
 mkdirSync(new URL("../artifact/", import.meta.url), { recursive: true });
-writeFileSync(new URL("../artifact/mantar-pano.html", import.meta.url), page);
-console.log(`artifact/mantar-pano.html yazıldı (${(page.length / 1024).toFixed(0)} KB)`);
+writeFileSync(new URL(`../artifact/${outName}`, import.meta.url), page);
+console.log(`artifact/${outName} yazıldı (${(page.length / 1024).toFixed(0)} KB, veri: ${mode})`);
