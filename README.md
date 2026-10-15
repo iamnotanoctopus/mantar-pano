@@ -17,7 +17,7 @@ Messenger tarzı **dürtme** ve ses dosyası kullanmayan **sentezlenmiş ses efe
   <img src="docs/screenshots/kumsal-light.jpg" alt="Kumsal teması" width="49%">
 </p>
 
-> Canlı demo: **https://USERNAME.github.io/mantar-pano/** (local-first; kartlar tarayıcında kalır)
+> Canlı demo: **https://iamnotanoctopus.github.io/mantar-pano/** (local-first; kartlar tarayıcında kalır)
 
 ---
 
