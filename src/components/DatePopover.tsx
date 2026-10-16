@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, useReducedMotion } from "motion/react";
 import { INSTANT } from "@/lib/physics";
 import type { Schema, Task } from "@shared/types";
 import { addDays, fromISODate, monthYear, startOfWeek, toISODate, today } from "@/lib/dates";
@@ -8,6 +8,7 @@ import { isDone, tasksByDate } from "@/lib/views";
 import { firstVisible, useDismiss } from "@/hooks/useDismiss";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { IconChevronLeft, IconChevronRight } from "./icons";
+import { PresencePanel } from "./PresencePanel";
 import { Scrim } from "./Scrim";
 import "./DatePopover.css";
 
@@ -113,7 +114,7 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
         />
       )}
       {open && (
-      <motion.div
+      <PresencePanel
         key="cal"
         ref={ref}
         id={DATE_POPOVER_ID}
@@ -171,7 +172,7 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
         <button type="button" className="cal__today" onClick={() => pick(t0)}>
           Bu hafta
         </button>
-      </motion.div>
+      </PresencePanel>
       )}
     </AnimatePresence>
   );

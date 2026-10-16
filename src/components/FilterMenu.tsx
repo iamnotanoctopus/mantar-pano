@@ -1,11 +1,12 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, useReducedMotion } from "motion/react";
 import { INSTANT } from "@/lib/physics";
 import type { Schema } from "@shared/types";
 import { areaColor, colorVar, plural } from "@/lib/format";
 import type { Filters } from "@/state/prefs";
 import { useDismiss } from "@/hooks/useDismiss";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
+import { PresencePanel } from "./PresencePanel";
 import { Scrim } from "./Scrim";
 import { Switch } from "./Switch";
 import "./FilterMenu.css";
@@ -60,7 +61,7 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
         />
       )}
       {open && (
-      <motion.div
+      <PresencePanel
         key="menu"
         ref={ref}
         id={FILTER_MENU_ID}
@@ -82,6 +83,8 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
             onClick={() => {
               onFilters({ areas: [], priorities: [] });
               onShowDone(false);
+              // düğme kendini devre dışı bırakır: odak boşa düşmesin, ilk çipe geçsin
+              ref.current?.querySelector<HTMLElement>(".fchip")?.focus();
             }}
           >
             Temizle
@@ -139,7 +142,7 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
         >
           Uygula · {plural(shown, "kart")}
         </button>
-      </motion.div>
+      </PresencePanel>
       )}
     </AnimatePresence>
   );

@@ -42,15 +42,24 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
   // Kapanırken (sönme sürerken) perde ve panel tıklama yakalamaz: dişliye hemen yeniden basılabilsin
   const present = useIsPresent();
   const gone = present ? undefined : ("none" as const);
-  useDismiss(true, ref, onClose, [returnFocus]);
+  // Yalnızca açıkken: kapanış yayı sürerken Esc, dış tıklama ve Tab tuzağı artık başka bir şeyi etkilemesin
+  useDismiss(present, ref, onClose, [returnFocus]);
   // aria-modal: Tab / Shift+Tab çekmecenin içinde döner (arka plan ayrıca inert)
-  useFocusTrap(ref);
+  useFocusTrap(ref, present);
 
+  /*
+   * Odak açılınca kapat düğmesine; kapanış BAŞLAR başlamaz (yay bitmesini beklemeden) dişliye döner — ama yalnızca
+   * odak hâlâ çekmecedeyse ya da boşa düştüyse: kullanıcı bu arada başka bir şeye geçtiyse elinden alınmaz.
+   * Kapanırken yeniden açılırsa (aynı örnek geri gelir) odak yine kapat düğmesine gider.
+   */
   useEffect(() => {
-    closeRef.current?.focus();
-    const back = returnFocus.current;
-    return () => back?.focus();
-  }, [returnFocus]);
+    if (present) {
+      closeRef.current?.focus();
+      return;
+    }
+    const a = document.activeElement;
+    if (!a || a === document.body || ref.current?.contains(a)) returnFocus.current?.focus();
+  }, [present, returnFocus]);
 
   const def = themeDef(prefs.resolvedTheme);
   const TEXTURE_NAMES: Record<string, string> = { mantar: "Mantar", ahsap: "Ahşap", cam: "Cam", duz: "Düz" };

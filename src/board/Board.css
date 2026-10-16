@@ -83,11 +83,13 @@
   border-radius: var(--radyus-kart);
   transition: background var(--dur) var(--ease);
 }
-/* Bırakılan kartın uçuş kopyası: gövdeye bağlı, hiçbir kaydırma kutusu kırpmaz (Board.tsx FlightCard) */
+/*
+ * Bırakılan kartın uçuş kopyası: gövdeye bağlı, hiçbir kaydırma kutusu kırpmaz (Board.tsx FlightCard).
+ * Panonun ve kapsülün üstünde, açılır menülerin (30) ve çekmecelerin (40+) altında.
+ */
 .card-flight {
   position: fixed;
-  z-index: 60;
-  pointer-events: none;
+  z-index: 26;
 }
 /* Uçuş sürerken yuva görünmez ve tıklanmaz (Esc ile iptalden sonra fare bırakılınca kart açılmasın) */
 .card-slot[data-landing] {
@@ -159,6 +161,8 @@
 }
 .lane__cards {
   position: relative;
+  /* telefonda şerit kendi içinde kayar: kart kutusu büzülüp kartlar "Kart ekle"nin üstüne taşmasın */
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
