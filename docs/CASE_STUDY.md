@@ -217,7 +217,7 @@ en öğretici bulgular zamanlamaydı:
 |---|---|---|
 | Gezinme öğesi | 5 sekme + mobil alt çubuk | 1 kapsül + 1 çekmece |
 | Tema üretimi | elle yazılmış JS nesnesi | `tokens.json` → 4 CSS dosyası |
-| JS paketi (gzip) | ~113 KB | ~165 KB (Motion ~50 KB) |
+| JS paketi (gzip) | ~113 KB | ~168 KB (Motion ~50 KB) |
 | Testler | 1 dosya (Notion eşleme) | 3 dosya (+ tercih göçü, pano odakları ve bırakma kuralı) |
 | Varsayılan yay oturma süresi | — | ~460 ms (380/30/0.8, ζ ≈ 0.86) |
 
