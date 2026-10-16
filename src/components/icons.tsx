@@ -117,6 +117,11 @@ export const IconChevronLeft = (p: P) => (
     <path d="m15 5-7 7 7 7" />
   </svg>
 );
+export const IconChevronDown = (p: P) => (
+  <svg {...base(p)}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
 export const IconChevronRight = (p: P) => (
   <svg {...base(p)}>
     <path d="m9 5 7 7-7 7" />
@@ -170,18 +175,9 @@ export const IconNudge = (p: P) => (
   </svg>
 );
 
-/** Marka: raptiye */
-export const BrandPin = (p: P) => (
-  <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden {...p}>
-    <defs>
-      <radialGradient id="mp-pin-h" cx="38%" cy="32%" r="70%">
-        <stop offset="0" stopColor="#ff8a7a" />
-        <stop offset=".55" stopColor="#d9452f" />
-        <stop offset="1" stopColor="#8e2417" />
-      </radialGradient>
-    </defs>
-    <path d="M32 36v22" stroke="#6b6158" strokeWidth="4" strokeLinecap="round" />
-    <ellipse cx="32" cy="38" rx="9" ry="3.2" fill="#b43b27" />
-    <circle cx="32" cy="24" r="14" fill="url(#mp-pin-h)" />
+/** Süz: azalan çizgiler */
+export const IconFilter = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 7h16M7 12h10M10 17h4" />
   </svg>
 );

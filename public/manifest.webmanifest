@@ -4,8 +4,8 @@
   "description": "Notion ile canlı senkron çalışan mantar pano görev uygulaması.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f3ece1",
-  "theme_color": "#f3ece1",
+  "background_color": "#ebe4cf",
+  "theme_color": "#ebe4cf",
   "lang": "tr",
   "icons": [
     {

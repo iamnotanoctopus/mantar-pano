@@ -76,12 +76,17 @@ export function startOfWeek(iso: string): string {
 }
 
 /** "20–26 Ekim" gibi hafta aralığı etiketi */
-export function weekRangeLabel(weekStart: string): string {
+/**
+ * "12–18 Ekim"; iki aya yayılan haftada kapsül genişlemesin diye kısa ay adlarıyla "26 Eki – 1 Kas".
+ * `long`: ekran okuyucu için her zaman tam ay adları.
+ */
+export function weekRangeLabel(weekStart: string, long = false): string {
   const end = addDays(weekStart, 6);
   const s = fromISODate(weekStart);
   const e = fromISODate(end);
-  const month = new Intl.DateTimeFormat("tr-TR", { month: "long" });
-  if (s.getMonth() === e.getMonth()) return `${s.getDate()}–${e.getDate()} ${month.format(e)}`;
+  const full = new Intl.DateTimeFormat("tr-TR", { month: "long" });
+  if (s.getMonth() === e.getMonth()) return `${s.getDate()}–${e.getDate()} ${full.format(e)}`;
+  const month = long ? full : new Intl.DateTimeFormat("tr-TR", { month: "short" });
   return `${s.getDate()} ${month.format(s)} – ${e.getDate()} ${month.format(e)}`;
 }
 

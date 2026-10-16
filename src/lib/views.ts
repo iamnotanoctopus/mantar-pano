@@ -3,29 +3,12 @@ import { addDays, startOfWeek, today } from "./dates";
 import { fold } from "./format";
 
 /**
- * Notion'daki görünümlerin kuralları birebir burada:
- *   📌 Pano        : Bitti değil ∧ (Tarih ≤ bugün+7 ∨ Tarih boş) · Alan'a göre grupla · Tarih ↑
- *   ☀️ Bugün       : Bitti değil ∧ Tarih ≤ bugün · Öncelik ↑
- *   🗓 Yaklaşanlar : Bitti değil ∧ Tarih > bugün+7 · Tarih ↑
- *   📅 Takvim      : Tarih'e göre
+ * Notion'daki görünümlerin kuralları birebir burada (v2'de pano odaklarının temeli, bkz. src/board/layouts.ts):
+ *   📌 Pano        : Bitti değil ∧ (Tarih ≤ bugün+7 ∨ Tarih boş) · Alan'a göre grupla · Tarih ↑   → Alanlar odağı
+ *   ☀️ Bugün       : Bitti değil ∧ Tarih ≤ bugün · Öncelik ↑                                     → Bugün odağı
+ *   🗓 Yaklaşanlar : Bitti değil ∧ Tarih > bugün+7 · Tarih ↑                                     → Hafta odağı
+ *   📅 Takvim      : Tarih'e göre                                                                → tarih popover'ı
  */
-
-export type ViewId = "board" | "today" | "upcoming" | "calendar" | "all";
-
-export interface ViewDef {
-  id: ViewId;
-  label: string;
-  short: string;
-  hint: string;
-}
-
-export const VIEWS: ViewDef[] = [
-  { id: "board", label: "Pano", short: "Pano", hint: "Bu hafta ve tarihsiz kartlar, alanlara göre" },
-  { id: "today", label: "Bugün", short: "Bugün", hint: "Bugün ve gecikenler, önceliğe göre" },
-  { id: "upcoming", label: "Yaklaşanlar", short: "Yakında", hint: "Bir haftadan uzak kartlar" },
-  { id: "calendar", label: "Takvim", short: "Takvim", hint: "Aylık görünüm" },
-  { id: "all", label: "Tümü", short: "Tümü", hint: "Bitenler dahil her şey" },
-];
 
 export const isDone = (t: Task) => t.status === STATUS_DONE;
 

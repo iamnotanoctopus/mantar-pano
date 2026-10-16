@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { STATUS_DONE, STATUS_TODO, type Task, type TaskInput } from "@shared/types";
+import { AnimatePresence, MotionConfig } from "motion/react";
+import { STATUS_DONE, STATUS_TODO, type Task, type TaskInput, type TaskPatch } from "@shared/types";
 import { ApiError, appKey } from "@/data/http";
+import { Board } from "@/board/Board";
+import { applyFilters, buildLayout, dropPatch, filtersActive } from "@/board/layouts";
+import { Capsule, FOCUS_DEFS, WeekNav } from "@/components/Capsule";
+import { DatePopover } from "@/components/DatePopover";
+import { FilterMenu } from "@/components/FilterMenu";
 import { Gate } from "@/components/Gate";
-import { BottomNav, Header } from "@/components/Header";
+import { SettingsDrawer } from "@/components/SettingsDrawer";
 import { TaskDrawer, type DrawerState } from "@/components/TaskDrawer";
+import { TopBar } from "@/components/TopBar";
 import { IconAlert, IconRefresh } from "@/components/icons";
 import { useToast } from "@/components/Toast";
 import { useNudge } from "@/hooks/useNudge";
 import { useSound } from "@/hooks/useSound";
 import { useCreateTask, useMeta, useSchema, useTasks, useUpdateTask } from "@/hooks/useTasks";
-import { today } from "@/lib/dates";
-import { isDone } from "@/lib/views";
-import { usePrefs } from "@/state/prefs";
-import { AllView } from "@/views/AllView";
-import { BoardView } from "@/views/BoardView";
-import { CalendarView } from "@/views/CalendarView";
-import { TodayView } from "@/views/TodayView";
-import { UpcomingView } from "@/views/UpcomingView";
+import { addDays, startOfWeek, today } from "@/lib/dates";
+import { plural } from "@/lib/format";
+import { SPRING } from "@/lib/physics";
+import { isDone, type Horizon } from "@/lib/views";
+import { usePrefs, type Focus } from "@/state/prefs";
 import "./App.css";
 
 interface DrawerRef {
@@ -26,7 +30,7 @@ interface DrawerRef {
 }
 
 export default function App() {
-  const { view, showNotes, skin, nudgeOnOverdue, setView } = usePrefs();
+  const { showNotes, nudgeOnOverdue, focus, setFocus, filters, setFilters, showDone, setShowDone } = usePrefs();
   const play = useSound();
   const nudge = useNudge();
   const toast = useToast();
@@ -37,10 +41,44 @@ export default function App() {
   const create = useCreateTask();
 
   const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(today()));
+  /* Takvimde seçilen gün: Hafta odağında pano o günün şeridine kayar */
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
+  /* Aynı gün yeniden seçilse de pano o şeride yeniden kaysın */
+  const [pickSeq, setPickSeq] = useState(0);
   const [drawer, setDrawer] = useState<DrawerRef | null>(null);
+  /* Kart eklendi / iğnelendi: logo seker */
+  const [pinPulse, setPinPulse] = useState(0);
+  const pinned = useCallback(() => setPinPulse((n) => n + 1), []);
+
   const searchRef = useRef<HTMLInputElement>(null);
+  const filterBtnRef = useRef<HTMLButtonElement>(null);
+  const dateBtnRef = useRef<HTMLButtonElement>(null);
+  const dateBtnRef2 = useRef<HTMLButtonElement>(null);
+  const gearRef = useRef<HTMLButtonElement>(null);
 
   const tasks = useMemo(() => tasksQ.data?.tasks ?? [], [tasksQ.data]);
+  /*
+   * "Bugün" her çizimde yeniden okunur: sekme gece yarısını açık geçirirse (periyodik yenileme App'i yeniden çizer)
+   * Bugün/Yarın şeritleri ve hızlı ekleme dünün tarihinde kalmaz.
+   */
+  const t0 = today();
+  const h = useMemo<Horizon>(() => ({ today: t0, weekAhead: addDays(t0, 7) }), [t0]);
+  const thisWeek = startOfWeek(t0);
+  const prevWeek = useRef(thisWeek);
+  useEffect(() => {
+    if (prevWeek.current === thisWeek) return;
+    // Hafta odağı "bu hafta"daysa yeni haftaya geçer; elle başka haftaya gidildiyse dokunulmaz
+    const was = prevWeek.current;
+    prevWeek.current = thisWeek;
+    setWeekStart((ws) => (ws === was ? thisWeek : ws));
+  }, [thisWeek]);
+  const layout = useMemo(() => buildLayout({ tasks, schema, focus, filters, showDone, query, weekStart, h }), [tasks, schema, focus, filters, showDone, query, weekStart, h]);
+  const filterCount = filters.areas.length + filters.priorities.length + (showDone ? 1 : 0);
 
   /* Çekmece: kart verisini listeden canlı türet (optimistic güncellemeler yansısın) */
   const drawerState: DrawerState | null = useMemo(() => {
@@ -53,12 +91,15 @@ export default function App() {
   const openTask = useCallback((t: Task) => setDrawer({ mode: "edit", taskId: t.id }), []);
   const closeDrawer = useCallback(() => setDrawer(null), []);
 
+  /** Yeni kart: odağa göre varsayılan tarih (Bugün → bugün, Hafta → bu haftadaysa bugün, değilse haftanın ilk günü) */
   const newCard = useCallback(
     (draft: Partial<TaskInput> = {}) => {
-      const base: Partial<TaskInput> = view === "today" ? { date: today() } : {};
+      const t0 = today();
+      const base: Partial<TaskInput> =
+        focus === "today" ? { date: t0 } : focus === "week" ? { date: startOfWeek(t0) === weekStart ? t0 : weekStart } : {};
       setDrawer({ mode: "create", draft: { ...base, ...draft } });
     },
-    [view],
+    [focus, weekStart],
   );
 
   const toggleDone = useCallback(
@@ -71,27 +112,44 @@ export default function App() {
   );
 
   const quickAdd = useCallback(
-    (input: TaskInput) => {
+    (title: string, patch: TaskPatch) => {
       play("pin");
-      create.mutate({ status: STATUS_TODO, priority: "Orta", ...input });
+      pinned();
+      create.mutate({ status: STATUS_TODO, priority: "Orta", ...patch, title });
     },
-    [create, play],
+    [create, play, pinned],
   );
 
-  const moveArea = useCallback(
-    (t: Task, area: string | null) => {
-      play("pop");
-      update.mutate({ id: t.id, patch: { area } });
+  /**
+   * Kart başka şeride bırakıldı: alanı ya da tarihi değişir (dropPatch); raptiye saplanır.
+   * Bir şey değiştiyse true döner (değişmediyse pano kartı eski yerine geri yaylar).
+   */
+  const dropCard = useCallback(
+    (t: Task, patch: TaskPatch): boolean => {
+      const next = dropPatch(t, patch);
+      if (!next) return false;
+      play("pin");
+      pinned();
+      update.mutate({ id: t.id, patch: next });
+      return true;
     },
-    [update, play],
+    [update, play, pinned],
   );
 
-  /* MSN usulü dürtme: elle (D / buton) ya da açılışta gecikmiş kart varsa (oturumda bir kez) */
-  const doNudge = useCallback(() => {
-    nudge();
-    if (skin === "msn") toast.info("Bir dürtme gönderdin.");
-  }, [nudge, skin, toast]);
+  const changeFocus = useCallback(
+    (f: Focus) => {
+      // Odak takvimin içindeyken (1/2 ile) takvim kapanırsa odak boşa düşmesin: seçilen odak düğmesine geçer
+      const inCal = document.activeElement?.closest("#mp-takvim");
+      setFocus(f);
+      if (f !== "week") {
+        setDateOpen(false);
+        if (inCal) requestAnimationFrame(() => document.querySelector<HTMLElement>('.capsule__seg[aria-pressed="true"]')?.focus());
+      }
+    },
+    [setFocus],
+  );
 
+  /* MSN usulü dürtme: elle (D / ayarlar) ya da açılışta gecikmiş kart varsa (oturumda bir kez) */
   const nudgedRef = useRef(false);
   useEffect(() => {
     if (!nudgeOnOverdue || nudgedRef.current || !tasksQ.data) return;
@@ -118,103 +176,225 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [tasksQ.data, tasks, nudgeOnOverdue, nudge, toast]);
 
-  /* Klavye kısayolları */
+  /* Klavye kısayolları: N yeni · / ara · D dürt · 1 2 3 odak · T takvim (Hafta) */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
-      if (typing || drawer || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "n" || e.key === "N") {
+      const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+      if (typing || drawer || settingsOpen || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLocaleLowerCase("tr-TR");
+      if (k === "n") {
         e.preventDefault();
+        // Açık Süz / takvim, açılan kart çekmecesinin altında kalmasın (Esc önce onları kapatıyordu)
+        setFilterOpen(false);
+        setDateOpen(false);
         newCard();
-      } else if (e.key === "/") {
+      } else if (k === "/") {
         e.preventDefault();
+        setSearchOpen(true);
         searchRef.current?.focus();
-      } else if (e.key === "d" || e.key === "D") {
+      } else if (k === "d") {
         e.preventDefault();
-        doNudge();
-      } else if (e.key >= "1" && e.key <= "5") {
-        const ids = ["board", "today", "upcoming", "calendar", "all"] as const;
-        setView(ids[Number(e.key) - 1]);
+        nudge();
+      } else if (k === "t") {
+        e.preventDefault();
+        changeFocus("week");
+        setFilterOpen(false);
+        setDateOpen(true);
+      } else {
+        const def = FOCUS_DEFS.find((f) => f.key === e.key);
+        if (def) {
+          e.preventDefault();
+          changeFocus(def.id);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawer, newCard, setView, doNudge]);
+  }, [drawer, settingsOpen, newCard, nudge, changeFocus]);
 
   const error = tasksQ.isError ? (tasksQ.error as Error).message : null;
-  const common = { tasks, schema, query, showNotes, onOpen: openTask, onToggleDone: toggleDone };
 
   /* Şifre korumalı sunucu: 401 gelirse giriş ekranı */
   const authErr = [meta.error, tasksQ.error].find((e) => e instanceof ApiError && e.status === 401);
   if (authErr) return <Gate wrong={Boolean(appKey.get())} />;
 
+  const active = filtersActive(filters, showDone) || Boolean(query.trim());
+  const focusLabel = FOCUS_DEFS.find((f) => f.id === focus)!.label;
+  const note =
+    tasksQ.data && layout.hidden > 0 ? `${focus !== "areas" || active ? `${focusLabel} odağı · ` : ""}${plural(layout.hidden, "kart")} odak dışında` : null;
+  const empty = !tasksQ.data
+    ? null
+    : layout.shown > 0
+      ? null
+      : query.trim()
+        ? "Aramana uyan kart yok."
+        : filtersActive(filters, showDone)
+          ? "Süzgece uyan kart yok."
+          : focus === "today"
+            ? "Bugün için pano temiz."
+            : focus === "week"
+              ? "Bu hafta için iğnelenmiş kart yok."
+              : "Panoda kart yok — bir şeride kart ekleyerek başla.";
+
+  const weekProps = {
+    weekStart,
+    onWeek: setWeekStart,
+    dateOpen,
+    onDateToggle: () => {
+      setFilterOpen(false);
+      setDateOpen((o) => !o);
+    },
+  };
+
+  /* Odak değişince pano başa kayar; Hafta'da takvimde seçilen güne, yoksa (bu haftaysa) bugüne */
+  const anchor =
+    focus !== "week" ? null : pickedDay && startOfWeek(pickedDay) === weekStart ? `day:${pickedDay}` : thisWeek === weekStart ? `day:${t0}` : null;
+
   return (
-    <>
-      <div className="app">
-        <Header
-          query={query}
-          onQuery={setQuery}
-          onNew={() => newCard()}
-          onNudge={doNudge}
+    // Tüm Motion geçişleri varsayılan yayla; "hareketi azalt" açıksa dönüşümler anında
+    <MotionConfig reducedMotion="user" transition={SPRING}>
+      {/* Ayarlar çekmecesi açıkken (aria-modal) arka plan etkileşimsiz: odak ve ekran okuyucu çekmecede kalır */}
+      <div className="app" data-focus={focus} data-note={note ? "" : undefined} inert={settingsOpen || undefined}>
+        <TopBar
+          pinPulse={pinPulse}
           syncedAt={meta.data?.lastSyncAt ?? tasksQ.data?.syncedAt ?? null}
           fetching={tasksQ.isFetching}
           error={error}
-          searchRef={searchRef}
-        />
-
-        <main className="main">
-          {error && (
-            <div className="banner banner--error">
-              <IconAlert />
-              <span className="grow">
-                {error}
-                {tasks.length > 0 && " — son eşitlenen kopya gösteriliyor."}
-              </span>
-              <button className="btn btn--sm" onClick={() => tasksQ.refetch()}>
-                <IconRefresh /> Tekrar dene
-              </button>
-            </div>
-          )}
-
-          {!tasksQ.data && !error ? (
-            <Skeleton />
-          ) : view === "board" ? (
-            <BoardView
-              {...common}
-              onQuickAdd={(title, area) => quickAdd({ title, area })}
-              onNewWithDraft={(d) => newCard(d)}
-              onMoveArea={moveArea}
+          count={tasks.length}
+          settingsOpen={settingsOpen}
+          onSettings={() => setSettingsOpen((o) => !o)}
+          gearRef={gearRef}
+        >
+          <div className="dock">
+            <Capsule
+              focus={focus}
+              onFocus={changeFocus}
+              query={query}
+              onQuery={setQuery}
+              searchOpen={searchOpen}
+              onSearchOpen={setSearchOpen}
+              searchRef={searchRef}
+              filterCount={filterCount}
+              filterOpen={filterOpen}
+              onFilterToggle={() => {
+                setDateOpen(false);
+                setFilterOpen((o) => !o);
+              }}
+              filterBtnRef={filterBtnRef}
+              dateBtnRef={dateBtnRef}
+              onNew={() => {
+                setFilterOpen(false);
+                setDateOpen(false);
+                newCard();
+              }}
+              {...weekProps}
             />
-          ) : view === "today" ? (
-            <TodayView {...common} onQuickAdd={(title, date) => quickAdd({ title, date })} onNew={() => newCard({ date: today() })} />
-          ) : view === "upcoming" ? (
-            <UpcomingView {...common} />
-          ) : view === "calendar" ? (
-            <CalendarView {...common} onQuickAdd={(title, date) => quickAdd({ title, date })} />
-          ) : (
-            <AllView {...common} />
-          )}
-        </main>
+            <FilterMenu
+              open={filterOpen}
+              onClose={() => setFilterOpen(false)}
+              anchorRef={filterBtnRef}
+              schema={schema}
+              filters={filters}
+              onFilters={setFilters}
+              showDone={showDone}
+              onShowDone={setShowDone}
+              shown={layout.shown}
+            />
+            <DatePopover
+              open={dateOpen && focus === "week"}
+              onClose={() => setDateOpen(false)}
+              anchorRefs={[dateBtnRef, dateBtnRef2]}
+              weekStart={weekStart}
+              onPick={(iso) => {
+                setPickedDay(iso);
+                setPickSeq((n) => n + 1);
+                setWeekStart(startOfWeek(iso));
+              }}
+              tasks={applyFilters(tasks, { filters, showDone, query })}
+              schema={schema}
+            />
+            {note && (
+              <p className="dock__note" role="status">
+                {note}
+                {filtersActive(filters, showDone) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilters({ areas: [], priorities: [] });
+                      setShowDone(false);
+                    }}
+                  >
+                    Süzgeci temizle
+                  </button>
+                )}
+              </p>
+            )}
+            {focus === "week" && <WeekNav className="dock__week" dateBtnRef={dateBtnRef2} {...weekProps} />}
+          </div>
+        </TopBar>
+
+        {error && (
+          <div className="banner banner--error">
+            <IconAlert />
+            <span className="grow">
+              {error}
+              {tasks.length > 0 && " — son eşitlenen kopya gösteriliyor."}
+            </span>
+            <button className="btn btn--sm" onClick={() => tasksQ.refetch()}>
+              <IconRefresh /> Tekrar dene
+            </button>
+          </div>
+        )}
+
+        {!tasksQ.data && !error ? (
+          <Skeleton />
+        ) : (
+          <Board
+            lanes={layout.lanes}
+            tasks={tasks}
+            schema={schema}
+            showNotes={showNotes && focus === "areas"}
+            empty={empty}
+            focusKey={focus === "week" ? `week:${weekStart}:${pickSeq}` : focus}
+            anchor={anchor}
+            onOpen={openTask}
+            onToggleDone={toggleDone}
+            onDrop={dropCard}
+            onQuickAdd={quickAdd}
+            onNewWithDraft={(d) => newCard(d)}
+          />
+        )}
       </div>
 
-      <BottomNav onNew={() => newCard()} />
-      <TaskDrawer state={drawerState} schema={schema} onClose={closeDrawer} onCreated={() => play("pin")} onDeleted={() => play("delete")} />
-    </>
+      <AnimatePresence>{settingsOpen && <SettingsDrawer key="settings" onClose={() => setSettingsOpen(false)} onNudge={nudge} returnFocus={gearRef} />}</AnimatePresence>
+      <TaskDrawer
+        state={drawerState}
+        schema={schema}
+        onClose={closeDrawer}
+        onCreated={() => {
+          play("pin");
+          pinned();
+        }}
+        onDeleted={() => play("delete")}
+      />
+    </MotionConfig>
   );
 }
 
 function Skeleton() {
   return (
-    <div className="skeleton" aria-busy="true" aria-label="Yükleniyor">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="skeleton__col">
-          <div className="skeleton__line" style={{ width: "40%" }} />
-          <div className="skeleton__card" />
-          <div className="skeleton__card" style={{ height: 70 }} />
-          <div className="skeleton__card" style={{ height: 56 }} />
-        </div>
-      ))}
-    </div>
+    <section className="board" aria-busy="true" aria-label="Yükleniyor">
+      <div className="skeleton">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="skeleton__col">
+            <div className="skeleton__line" style={{ width: "46%" }} />
+            <div className="skeleton__card" />
+            <div className="skeleton__card" style={{ height: 70 }} />
+            <div className="skeleton__card" style={{ height: 56 }} />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

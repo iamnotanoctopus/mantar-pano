@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_SCHEMA, STATUS_TODO, type ServerMeta, type Task, type TaskInput, type TaskPatch } from "@shared/types";
 import { API_MODE, api } from "@/data";
 import { useToast } from "@/components/Toast";
+import { linkStableKey } from "@/lib/stableKey";
 
 const TASKS_KEY = ["tasks"] as const;
 const META_KEY = ["meta"] as const;
@@ -111,6 +112,7 @@ export function useCreateTask() {
       return { prev, tempId };
     },
     onSuccess: (task, _input, ctx) => {
+      if (ctx?.tempId) linkStableKey(task.id, ctx.tempId);
       patchList(qc, (ts) => ts.map((t) => (t.id === ctx?.tempId ? task : t)));
     },
     onError: (e: Error, _input, ctx) => {

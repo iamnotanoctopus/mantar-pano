@@ -1,0 +1,43 @@
+/* Midnight Wood — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
+:root[data-theme="midnight-wood"],
+[data-theme-scope="midnight-wood"] {
+  --zemin: #141210;
+  --pano-yuzey: #2a1f17;
+  --pano-doku: rgba(255,225,190,0.07);
+  --pano-cerceve: #3d2b1f;
+  --pano-cerceve-2: #5b4231;
+  --kart-yuzey: #322b26;
+  --kart-kenar: rgba(255,255,255,0.08);
+  --murekkep: #f1e9dc;
+  --murekkep-2: #cbbfb0;
+  --murekkep-3: #a69b8e;
+  --cizgi: rgba(255,255,255,0.08);
+  --cizgi-2: rgba(255,255,255,0.16);
+  --vurgu: #ffb454;
+  --vurgu-2: #7fd1a0;
+  --vurgu-murekkep: #1a1511;
+  --vurgu-yumusak: rgba(255,180,84,0.14);
+  --raptiye-sapka: #ff8a80;
+  --raptiye-benek: #fff3e0;
+  --raptiye-igne: #b8bcc4;
+  --kapsul-yuzey: rgba(28,23,19,0.78);
+  --kapsul-kenar: rgba(255,255,255,0.12);
+  --kapsul-murekkep: #f1e9dc;
+  --kapsul-aktif: #f1e9dc;
+  --kapsul-aktif-murekkep: #1a1511;
+  --cekmece-yuzey: #1e1a16;
+  --tehlike: #ff6b6b;
+  --basari: #7fd1a0;
+  --odak-halkasi: rgba(255,180,84,0.60);
+  --alan-is: #8ecae6;
+  --alan-gorunurluk: #c7a4ff;
+  --alan-okul: #7fd1a0;
+  --alan-kisisel: #ffb454;
+  --golge-kart: 0 1px 1px rgba(0,0,0,0.30), 0 10px 22px -10px rgba(0,0,0,0.70);
+  --golge-kart-kaldir: 0 10px 16px -6px rgba(0,0,0,0.6), 0 32px 56px -16px rgba(0,0,0,0.85);
+  --golge-kapsul: 0 2px 6px rgba(0,0,0,0.40), 0 16px 40px -12px rgba(0,0,0,0.80);
+  --golge-cekmece: 0 0 0 1px rgba(255,255,255,0.06), -12px 0 56px -16px rgba(0,0,0,0.9);
+  color-scheme: dark;
+  --pano-cerceve-kalinlik: 10px;
+  --pano-filtre: none;
+}

@@ -5,8 +5,9 @@ import { fileURLToPath, URL } from "node:url";
 
 /**
  * claude.ai Artifact derlemesi: tek dosya, sunucusuz (VITE_API_MODE=mcp).
- * Yazı tipleri Google Fonts'tan yüklenir (Artifact CSP'sinin izin verdiği tek yazı tipi kaynağı),
- * bu yüzden @fontsource paketleri boş bir CSS'e yönlendirilir.
+ * Yazı tipi Google Fonts'tan yüklenir (Artifact CSP'sinin izin verdiği tek yazı tipi kaynağı):
+ * yalnızca Fraunces (başlıklar, opsz ekseniyle); arayüz metni sistem yazı tipidir (bkz. scripts/build-artifact.mjs).
+ * Bu yüzden @fontsource paketleri boş bir CSS'e yönlendirilir.
  *   npm run build:artifact  →  artifact/mantar-pano.html
  */
 export default defineConfig({

@@ -1,0 +1,235 @@
+.topbar {
+  position: relative;
+  z-index: 20;
+  height: 92px;
+  /* Üç sütun: logo · kapsül yuvası · senkron + dişli. Sütunlar üst üste binmez; kapsül her zaman ortada */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "brand dock end";
+  align-items: center;
+  column-gap: 16px;
+}
+.topbar__brand {
+  grid-area: brand;
+  justify-self: start;
+  min-width: 0;
+  color: var(--murekkep);
+  text-decoration: none;
+  border-radius: var(--radyus-cip);
+}
+.topbar__brand:hover {
+  text-decoration: none;
+}
+.topbar__end {
+  grid-area: end;
+  /* Sütunu doldurur ve içeriğini sağa yaslar: dar kalınca senkron etiketi üç noktayla kısalır, kapsülün altına girmez */
+  justify-self: stretch;
+  justify-content: flex-end;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topbar__gear {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radyus-kapsul);
+  border: 1px solid var(--kapsul-kenar);
+  background: var(--kapsul-yuzey);
+  box-shadow: var(--golge-kapsul);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  color: var(--kapsul-murekkep);
+  display: inline-grid;
+  place-items: center;
+  transition: transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.topbar__gear:hover {
+  transform: rotate(30deg);
+}
+.topbar__gear[aria-expanded="true"] {
+  transform: rotate(60deg);
+}
+
+.sync {
+  min-width: 0;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radyus-kapsul);
+  font: var(--yazi-meta);
+  color: var(--murekkep-3);
+}
+.sync:hover {
+  background: color-mix(in srgb, var(--murekkep) 6%, transparent);
+}
+.sync__label,
+.sync__short {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sync__dot {
+  flex: none;
+}
+.sync__short {
+  display: none;
+}
+.sync__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radyus-kapsul);
+  background: var(--basari);
+}
+.sync--local .sync__dot {
+  background: var(--basari);
+}
+.sync--busy .sync__dot {
+  background: var(--vurgu);
+  animation: sync-pulse 900ms ease-in-out infinite alternate;
+}
+.sync--error {
+  color: var(--tehlike);
+}
+.sync--error .sync__dot {
+  background: var(--tehlike);
+}
+@keyframes sync-pulse {
+  to {
+    opacity: 0.25;
+  }
+}
+
+/* Ortadaki yuva: kapsül + odak notu (telefonda alta iner). Süz ve takvim bu kutuya göre konumlanır. */
+.dock {
+  grid-area: dock;
+  position: relative;
+  align-self: start;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.dock__note {
+  font: var(--yazi-meta);
+  color: var(--murekkep-2);
+  background: var(--kapsul-yuzey);
+  border: 1px solid var(--kapsul-kenar);
+  border-radius: var(--radyus-cip);
+  padding: 2px 10px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  white-space: nowrap;
+}
+.dock__note button {
+  color: var(--vurgu-metin);
+  font-weight: 600;
+  margin-left: 4px;
+}
+.dock__week {
+  display: none;
+}
+
+/* Dar masaüstü: senkron etiketi noktaya iner; Hafta'da ya da arama açıkken kapsül genişler, etiket o zaman da çekilir */
+@media (min-width: 1121px) and (max-width: 1280px) {
+  .app[data-focus="week"] .sync__label,
+  .topbar:has(.capsule__search.is-open) .sync__label {
+    display: none;
+  }
+}
+/* Hafta + arama en geniş kapsüldür: dar masaüstünde düğme etiketleri ikona, logo işarete iner (üst üste binmesin) */
+@media (min-width: 1121px) and (max-width: 1400px) {
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__label,
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__caret,
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .logo__word {
+    display: none;
+  }
+}
+/* Tablet: kapsül yuvası ikinci satıra iner; logo ve senkron üstte kalır, hiçbiri üst üste binmez */
+@media (min-width: 761px) and (max-width: 1120px) {
+  .topbar {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand end" "dock dock";
+    row-gap: 6px;
+    padding: 12px 0 4px;
+  }
+  .dock {
+    justify-self: center;
+    margin-top: 0;
+  }
+  /* Hafta + arama satıra sığsın: düğme etiketleri ikona, bölümler (seçili olan hariç) ikona iner, arama daralır */
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) :is(.capsule__label, .capsule__caret),
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__seg:not([aria-pressed="true"]) .capsule__seg-label {
+    display: none;
+  }
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__seg-icon {
+    display: block;
+  }
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__search.is-open .capsule__input {
+    width: 120px;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    height: 48px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand end";
+  }
+  .topbar__gear {
+    width: 44px;
+    height: 44px;
+  }
+  /* Telefonda yalnızca kısa etiket (kart sayısı) */
+  .sync__label {
+    display: none;
+  }
+  .topbar .logo__mark {
+    width: 22px;
+    height: 28px;
+  }
+  .sync__short {
+    display: inline;
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+  }
+  .dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: none;
+    flex-direction: column-reverse;
+    z-index: 25;
+    pointer-events: none;
+  }
+  .dock > * {
+    pointer-events: auto;
+  }
+  .dock__week {
+    display: inline-flex;
+    padding: 3px;
+    background: var(--kapsul-yuzey);
+    border: 1px solid var(--kapsul-kenar);
+    border-radius: var(--radyus-kapsul);
+    box-shadow: var(--golge-kapsul);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    color: var(--kapsul-murekkep);
+    font: var(--yazi-kapsul);
+    margin: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar__gear {
+    transition: none;
+  }
+}

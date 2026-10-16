@@ -10,9 +10,11 @@
   pointer-events: none;
   width: min(420px, calc(100vw - 32px));
 }
+/* Telefonda kapsül yuvası altta: bildirimler üst çubuğun altında belirir, kapsülü ve odak notunu örtmez */
 @media (max-width: 760px) {
   .toasts {
-    bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
+    top: calc(max(6px, env(safe-area-inset-top)) + 54px);
+    bottom: auto;
   }
 }
 .toast {

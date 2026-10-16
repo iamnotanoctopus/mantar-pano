@@ -1,0 +1,43 @@
+/* Klasik Mantar Pano — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
+:root[data-theme="classic-cork"],
+[data-theme-scope="classic-cork"] {
+  --zemin: #f3ece1;
+  --pano-yuzey: #d9bb93;
+  --pano-doku: rgba(92,58,24,0.22);
+  --pano-cerceve: #96683d;
+  --pano-cerceve-2: #6f4a28;
+  --kart-yuzey: #fffdf8;
+  --kart-kenar: rgba(43,36,31,0.12);
+  --murekkep: #2b241f;
+  --murekkep-2: #5c5248;
+  --murekkep-3: #6b6156;
+  --cizgi: rgba(43,36,31,0.10);
+  --cizgi-2: rgba(43,36,31,0.18);
+  --vurgu: #2f4f80;
+  --vurgu-2: #3d619a;
+  --vurgu-murekkep: #ffffff;
+  --vurgu-yumusak: rgba(47,79,128,0.10);
+  --raptiye-sapka: #c0392b;
+  --raptiye-benek: #fff4f2;
+  --raptiye-igne: #9ea3ab;
+  --kapsul-yuzey: rgba(255,253,248,0.82);
+  --kapsul-kenar: rgba(43,36,31,0.14);
+  --kapsul-murekkep: #2b241f;
+  --kapsul-aktif: #2b241f;
+  --kapsul-aktif-murekkep: #fffdf8;
+  --cekmece-yuzey: #fffdf8;
+  --tehlike: #b3362b;
+  --basari: #2e7a48;
+  --odak-halkasi: rgba(47,79,128,0.50);
+  --alan-is: #3b6ea8;
+  --alan-gorunurluk: #7b5ea7;
+  --alan-okul: #2e7a48;
+  --alan-kisisel: #d4762a;
+  --golge-kart: 0 1px 1px rgba(60,40,20,0.08), 0 2px 4px rgba(60,40,20,0.08), 0 10px 18px -10px rgba(60,40,20,0.35);
+  --golge-kart-kaldir: 0 10px 16px -6px rgba(60,40,20,0.45), 0 28px 48px -16px rgba(60,40,20,0.50);
+  --golge-kapsul: 0 2px 6px rgba(40,25,10,0.12), 0 12px 32px -12px rgba(40,25,10,0.35);
+  --golge-cekmece: 0 0 0 1px rgba(43,36,31,0.08), -12px 0 48px -16px rgba(40,25,10,0.45);
+  color-scheme: light;
+  --pano-cerceve-kalinlik: 10px;
+  --pano-filtre: none;
+}

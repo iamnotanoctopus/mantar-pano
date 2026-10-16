@@ -1,0 +1,251 @@
+/* ---------------------------------------------------------- Filtre kapsülü */
+
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  background: var(--kapsul-yuzey);
+  border: 1px solid var(--kapsul-kenar);
+  border-radius: var(--radyus-kapsul);
+  box-shadow: var(--golge-kapsul);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  color: var(--kapsul-murekkep);
+  font: var(--yazi-kapsul);
+  white-space: nowrap;
+}
+
+.capsule__segs {
+  display: inline-flex;
+  gap: 2px;
+}
+.capsule__seg {
+  position: relative;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radyus-kapsul);
+  color: var(--kapsul-murekkep);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  isolation: isolate;
+}
+.capsule__seg:hover:not([aria-pressed="true"]) {
+  background: color-mix(in srgb, var(--kapsul-murekkep) 7%, transparent);
+}
+.capsule__seg[aria-pressed="true"] {
+  color: var(--kapsul-aktif-murekkep);
+}
+/* Seçili hap: Motion layoutId ile bölümler arasında yaylanır */
+.capsule__pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--kapsul-aktif);
+}
+.capsule__seg-icon {
+  display: none;
+}
+
+.capsule__sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--kapsul-kenar);
+}
+
+.capsule__btn {
+  position: relative;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radyus-kapsul);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: inherit;
+}
+.capsule__btn:hover {
+  background: color-mix(in srgb, var(--kapsul-murekkep) 7%, transparent);
+}
+.capsule__btn--icon {
+  width: 34px;
+  padding: 0;
+}
+.capsule__btn--filter[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--kapsul-murekkep) 9%, transparent);
+}
+/* "Süz ▾": açılır menü işareti; menü açıkken döner */
+.capsule__caret {
+  margin-left: -2px;
+  opacity: 0.7;
+  transition: rotate 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.capsule__btn--filter[aria-expanded="true"] .capsule__caret {
+  rotate: 180deg;
+}
+.capsule__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radyus-kapsul);
+  background: var(--vurgu);
+  color: var(--vurgu-murekkep);
+  font: var(--yazi-etiket);
+  display: inline-grid;
+  place-items: center;
+}
+.capsule__btn--new {
+  padding: 0 14px 0 10px;
+  background: var(--vurgu);
+  color: var(--vurgu-murekkep);
+}
+.capsule__btn--new:hover {
+  background: color-mix(in srgb, var(--vurgu) 88%, var(--murekkep));
+}
+
+/* Arama kapsülün içinde açılır */
+.capsule__search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radyus-kapsul);
+}
+.capsule__input {
+  width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--kapsul-murekkep);
+  font: var(--yazi-govde);
+  opacity: 0;
+  transition: width 320ms cubic-bezier(0.32, 1.15, 0.6, 1), opacity 200ms var(--ease);
+}
+.capsule__search.is-open {
+  background: color-mix(in srgb, var(--kapsul-murekkep) 6%, transparent);
+  padding-right: 28px;
+}
+.capsule__search.is-open .capsule__input {
+  width: 180px;
+  opacity: 1;
+}
+.capsule__input::placeholder {
+  color: var(--murekkep-3);
+}
+.capsule__clear {
+  position: absolute;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radyus-kapsul);
+  display: grid;
+  place-items: center;
+  color: var(--murekkep-2);
+}
+.capsule__clear:hover {
+  background: color-mix(in srgb, var(--kapsul-murekkep) 10%, transparent);
+}
+
+/* Hafta gezgini: kapsülde (masaüstü) ya da kapsülün üstünde (telefon) */
+.weeknav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+}
+.weeknav__step,
+.weeknav__date {
+  height: 34px;
+  border-radius: var(--radyus-kapsul);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: inherit;
+}
+.weeknav__step {
+  width: 30px;
+}
+.weeknav__date {
+  padding: 0 10px;
+  border: 1px solid var(--kapsul-kenar);
+}
+.weeknav__step:hover,
+.weeknav__date:hover,
+.weeknav__date[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--kapsul-murekkep) 8%, transparent);
+}
+
+/* ---------------------------------------------------------------- Telefon */
+@media (max-width: 760px) {
+  .capsule {
+    gap: 2px;
+  }
+  .capsule__seg {
+    height: 44px;
+    min-width: 50px;
+    padding: 0 12px;
+    justify-content: center;
+  }
+  .capsule__seg-icon {
+    display: block;
+  }
+  .capsule__seg:not([aria-pressed="true"]) .capsule__seg-label,
+  .capsule__label {
+    display: none;
+  }
+  .capsule__sep {
+    margin: 0 3px;
+  }
+  .capsule__caret {
+    display: none;
+  }
+  .capsule__btn,
+  .capsule__btn--new {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+  .capsule__badge {
+    position: absolute;
+    top: 3px;
+    right: 1px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+  .capsule__week {
+    display: none;
+  }
+  /* Arama açıkken kapsül ekrana sığsın: yalnızca seçili odak (ikon) kalır, alan kalan genişliğe göre daralır */
+  .capsule:has(.capsule__search.is-open) .capsule__seg:not([aria-pressed="true"]),
+  .capsule:has(.capsule__search.is-open) .capsule__seg-label {
+    display: none;
+  }
+  .capsule__search.is-open .capsule__input {
+    width: min(150px, calc(100vw - 264px));
+  }
+  .weeknav__step,
+  .weeknav__date {
+    height: 36px;
+  }
+}
+
+/* Çok dar telefon (< 375px): seçili olmayan bölümler 44px dokunma hedefine iner, kapsülün kenar boşluğu kalsın */
+@media (max-width: 374px) {
+  .capsule__seg {
+    min-width: 44px;
+    padding: 0 10px;
+  }
+}
+
+/* Hareketi azalt: arama alanı ve menü işareti anında açılır */
+@media (prefers-reduced-motion: reduce) {
+  .capsule__input,
+  .capsule__caret {
+    transition: none;
+  }
+}

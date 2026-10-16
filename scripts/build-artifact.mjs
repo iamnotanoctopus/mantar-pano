@@ -14,8 +14,8 @@ const scripts = [...src.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) 
 if (!scripts.length) throw new Error("dist-artifact/index.html içinde satır içi script bulunamadı — vite-plugin-singlefile çalıştı mı?");
 if (/<script[^>]+src=/.test(src)) throw new Error("Harici script kaldı; tek dosya derlemesi tamamlanmamış.");
 
-const fonts =
-  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:opsz,wght@14..32,400..700&family=Rajdhani:wght@500;600;700&display=swap";
+// v2: başlıklar Fraunces (opsz ekseniyle), arayüz metni sistem yazı tipi → Google Fonts'tan yalnızca Fraunces
+const fonts = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap";
 
 const mode = process.env.ARTIFACT_MODE === "local" ? "local" : "mcp";
 const outName = mode === "local" ? "mantar-pano-demo.html" : "mantar-pano.html";

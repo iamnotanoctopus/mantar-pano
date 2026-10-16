@@ -1,22 +1,38 @@
-# 📌 Mantar Pano
+# 🍄 Mantar Pano
 
 **A cork-board task app that syncs live with Notion — with a Retro MSN twist.**
-React 19 · Vite 7 · TypeScript · TanStack Query · dnd-kit · Hono · Web Audio API
+React 19 · Vite 7 · TypeScript · TanStack Query · dnd-kit · Motion · Hono · Web Audio API
 
 [![Build & Deploy (GitHub Pages)](https://github.com/iamnotanoctopus/mantar-pano/actions/workflows/deploy.yml/badge.svg)](https://github.com/iamnotanoctopus/mantar-pano/actions/workflows/deploy.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Notion'daki bir görev veritabanını, kâğıt kartlar ve iğnelerle bir **mantar panoya** dönüştürür.
-Üç çalışma modu vardır: tamamen tarayıcıda (**local-first**), kendi sunucunla **Notion API**
-üzerinden, ya da claude.ai içinde **sunucusuz Notion senkronu**. Dört görünüm teması, MSN
-Messenger tarzı **dürtme** ve ses dosyası kullanmayan **sentezlenmiş ses efektleri** ile gelir.
+Notion'daki bir görev veritabanını, kâğıt kartlar ve raptiyelerle **tek bir mantar panoya** dönüştürür.
+v2'de sekme yoktur: pano her şeydir; üstünde yüzen bir **filtre kapsülü** (Alanlar · Bugün · Hafta · Süz · Ara)
+ve sağ üstte bir **tema & ayarlar çekmecesi** vardır. Kartlar yay fiziğiyle kalkar, kayar ve raptiyeyle saplanır.
+Üç çalışma modu vardır: tamamen tarayıcıda (**local-first**), kendi sunucunla **Notion API** üzerinden, ya da
+claude.ai içinde **sunucusuz Notion senkronu**. Dört tema, MSN Messenger tarzı **dürtme** ve ses dosyası
+kullanmayan **sentezlenmiş ses efektleri** ile gelir.
 
 <p>
-  <img src="docs/screenshots/mantar-light.jpg" alt="Mantar teması — pano görünümü" width="49%">
-  <img src="docs/screenshots/cyberpunk-dark.jpg" alt="Cyberpunk teması — koyu" width="49%">
+  <img src="docs/screenshots/amanita-desktop.jpg" alt="Amanita teması — Alanlar düzeni" width="49%">
+  <img src="docs/screenshots/classic-cork-desktop.jpg" alt="Klasik Mantar Pano teması" width="49%">
 </p>
 <p>
-  <img src="docs/screenshots/msn-light.jpg" alt="Retro MSN teması" width="49%">
-  <img src="docs/screenshots/kumsal-light.jpg" alt="Kumsal teması" width="49%">
+  <img src="docs/screenshots/cupertino-glass-desktop.jpg" alt="Cupertino Glass teması" width="49%">
+  <img src="docs/screenshots/midnight-wood-desktop.jpg" alt="Midnight Wood teması — koyu" width="49%">
+</p>
+<p>
+  <img src="docs/screenshots/amanita-phone.jpg" alt="Telefon · Amanita" width="24%">
+  <img src="docs/screenshots/classic-cork-phone.jpg" alt="Telefon · Klasik" width="24%">
+  <img src="docs/screenshots/cupertino-glass-phone.jpg" alt="Telefon · Cupertino Glass" width="24%">
+  <img src="docs/screenshots/midnight-wood-phone.jpg" alt="Telefon · Midnight Wood" width="24%">
+</p>
+<p>
+  <img src="docs/screenshots/odak-bugun.jpg" alt="Bugün odağı — Gecikenler · Bugün · Yarın" width="49%">
+  <img src="docs/screenshots/odak-hafta.jpg" alt="Hafta odağı — Pzt … Paz ve Tarihsiz" width="49%">
+</p>
+<p>
+  <img src="docs/screenshots/ayarlar.jpg" alt="Tema ve ayarlar çekmecesi" width="73%">
+  <img src="docs/screenshots/suz-telefon.jpg" alt="Telefon · Süz alt sayfası" width="24%">
 </p>
 
 > Canlı demo: **https://iamnotanoctopus.github.io/mantar-pano/** (local-first; kartlar tarayıcında kalır)
@@ -26,12 +42,14 @@ Messenger tarzı **dürtme** ve ses dosyası kullanmayan **sentezlenmiş ses efe
 ## In English (TL;DR)
 
 Mantar Pano is a cork-board task app that syncs live with Notion: it turns a Notion task database into paper cards
-and pins on a cork board, with Board, Today, Upcoming, Calendar and All views.
-It is built with React 19, Vite 7, TypeScript, TanStack Query, dnd-kit, Hono and the Web Audio API.
+and pins on a single draggable cork board, with a floating filter capsule (Areas, Today and Week focus, filter, search)
+and a theme & settings drawer instead of tabs.
+It is built with React 19, Vite 7, TypeScript, TanStack Query, dnd-kit, Motion, Hono and the Web Audio API.
 Three data modes share the same UI: a local-first static build (cards stay in your browser, with JSON export/import),
 the Notion API through your own Hono proxy, and serverless Notion sync inside claude.ai using the viewer's own Notion connector.
-It ships with four view themes (Mantar, Retro MSN, Kumsal, Cyberpunk, each in light and dark), an MSN Messenger-style
-nudge, and sound effects synthesized with the Web Audio API instead of audio files.
+It ships with four themes generated from one design-token file (Amanita, Classic Cork, Cupertino Glass, Midnight Wood),
+spring physics for every motion, an MSN Messenger-style nudge, and sound effects synthesized with the Web Audio API
+instead of audio files.
 Try the live demo at **https://iamnotanoctopus.github.io/mantar-pano/** (local-first; cards stay in your browser).
 Design decisions and measurements are in [docs/CASE_STUDY.md](docs/CASE_STUDY.md).
 
@@ -39,13 +57,15 @@ Design decisions and measurements are in [docs/CASE_STUDY.md](docs/CASE_STUDY.md
 
 | Alan | Ne var |
 |---|---|
-| **Görünümler** | Pano (alanlara göre sütunlar, sürükle-bırak), Bugün (gecikenler + sıradakiler), Yaklaşanlar (haftalara gruplu), Takvim, Tümü (filtreli) |
-| **Kart** | Başlık, alan, durum, öncelik, tarih, süre, not; tek tıkla tamamlama; otomatik kaydeden ayrıntı çekmecesi; hızlı ekleme |
+| **Tek pano** | Sürüklenebilir mantar pano; üç odak: **Alanlar** (alan şeritleri), **Bugün** (Gecikenler · Bugün · Yarın), **Hafta** (Pzt … Paz + Tarihsiz, ay ızgarası popover'ı). Odak değişince kartlar yeni şeride yaylanarak kayar, dışarıda kalanlar söner; "N kart odak dışında" notu |
+| **İki menü** | **Filtre kapsülü**: odak, Süz (alan ve öncelik çoklu, bitmişleri göster), arama, yeni kart; telefonda altta. **Tema & ayarlar çekmecesi**: tema, pano dokusu, raptiye stili, ses, dürtme, veri, kısayollar |
+| **Kart** | Başlık, alan, durum, öncelik, tarih, süre, not; tek tıkla tamamlama; ayrıntı çekmecesi; şerit başına hızlı ekleme; şeride bırakınca alan ya da tarih değişir |
 | **Gün etiketi** | "Bugün · Yarın · Cumartesi · 24 Eki · 3 gün gecikti" — Notion'daki formülün istemci tarafı karşılığı |
-| **Temalar** | Mantar (varsayılan), Retro MSN, Kumsal, Cyberpunk — her biri açık/koyu, sistem temasına uyar |
-| **Retro etkileşim** | MSN tarzı **dürtme** (`D` tuşu, buton, ya da açılışta gecikmiş kart varsa); Web Audio ile sentezlenen pin / bitti / sil / dürtme sesleri |
+| **Temalar** | Amanita (varsayılan), Klasik Mantar Pano, Cupertino Glass, Midnight Wood; "Sisteme uy" seçeneğinde açıkta Amanita, koyuda Midnight. Doku (mantar · ahşap · cam · düz) ve raptiye stili temadan bağımsız seçilebilir |
+| **Fizik** | Her hareket bir yay (380 / 30 / 0.8): kart tutulunca yükselir ve 1.5° eğilir, bırakılınca raptiye 1.2 → 1.0 sekerek saplanır (520 / 18); pano ataletle kayar, kenarda yaylanır |
+| **Retro etkileşim** | MSN tarzı **dürtme** (`D`, ayarlar ya da açılışta gecikmiş kart varsa); Web Audio ile sentezlenen pin / bitti / sil / dürtme sesleri |
 | **Veri** | Local-first (localStorage + JSON dışa/içe aktarma), Notion API (Hono proxy), claude.ai artifact (MCP) |
-| **UX** | Optimistic güncellemeler ve geri alma, arama, klavye kısayolları (`N` yeni, `/` ara, `D` dürt, `1–5` görünüm), mobil düzen, PWA manifest, `prefers-reduced-motion` desteği |
+| **UX** | Optimistic güncellemeler, kısayollar (`N` yeni kart, `/` ara, `D` dürt, `1 2 3` odak, `T` takvim, `Esc` kapat), telefonda kapsül başparmak hizasında, PWA manifest, `prefers-reduced-motion` (yaylar anında, titreme yerine parlama) |
 
 ## Hızlı başlangıç
 
@@ -84,32 +104,44 @@ seçenek Notion'a asla yazılmaz (Notion'un yeni seçenek üretmesi engellenir).
 ## Mimari
 
 ```
+design/         tokens.json — tasarım sisteminin tek kaynağı (renk, gölge, yapı, ölçü, yazı, fizik)
 src/
-  app/          App.tsx — görünüm seçimi, kısayollar, dürtme/ses tetikleyicileri
-  components/   Header, TaskCard, TaskDrawer, QuickAdd, Toast, Gate, icons
-  views/        BoardView (dnd-kit), TodayView, UpcomingView, CalendarView, AllView
-  hooks/        useTasks (TanStack Query + optimistic), useSound, useNudge
+  app/          App.tsx — odak, süzgeç, hafta durumu, kısayollar, dürtme/ses tetikleyicileri
+  board/        Board.tsx (pan + atalet, layout animasyonları, dnd-kit) · layouts.ts (byArea, byToday, byWeek, applyFilters)
+  components/   TopBar, Capsule, FilterMenu, SettingsDrawer, DatePopover, TaskCard, Pin, Logo, TaskDrawer, QuickAdd, Toast, Gate
+  hooks/        useTasks (TanStack Query + optimistic), useSound, useNudge, useDismiss, useMediaQuery
   data/         http.ts · local.ts · mcpNotion.ts · index.ts (mod seçimi) · demoSeed.ts
-  lib/          dates (Gün etiketi), views (Notion görünüm kuralları), sounds (Web Audio), skins
-  state/        prefs (tema, skin, ses, görünüm — localStorage)
-  styles/       tokens.css (tasarım tokenları) · base.css · nudge.css · themes/*.css (üretilir)
+  lib/          dates (Gün etiketi), views (Notion görünüm kuralları), themes, brand (logo/raptiye geometrisi), physics (yaylar), sounds
+  state/        prefs + prefsModel (tema, doku, raptiye, odak, süzgeç — localStorage, v1 → v2 göçü)
+  styles/       tokens.css (eşlemeler) · base.css · nudge.css · themes/*.css (tokens.json'dan üretilir)
+  test/         prefs.test.ts · layouts.test.ts
 server/         Hono API: NotionRepo (Notion API 2025-09-03), DemoRepo, doğrulama, isteğe bağlı şifre
 shared/         Ortak tipler, varsayılan şema, örnek kartlar
-scripts/        build-static · build-artifact · build-themes (scripts/themes.mjs → CSS)
+scripts/        build-static · build-artifact · build-themes · build-icons · build-screenshots
 ```
 
 Tasarım kararları ve ölçümler için **[docs/CASE_STUDY.md](docs/CASE_STUDY.md)**.
 
 ### Temalar nasıl çalışır
 
-Tüm renkler `:root` üzerinde token olarak tanımlıdır. Koyu tema iki yerde yazılır (sistem tercihi ve açık seçim),
-görünüm temaları (`data-skin`) yalnızca tokenları ezer; bileşenler tema bilmez. `scripts/themes.mjs` tek kaynaktır,
-`npm run build:themes` CSS dosyalarını üretir.
+`design/tokens.json` tek kaynaktır. `npm run build:themes` her tema için bir `[data-theme="…"]` bloğu üretir
+(`src/styles/themes/*.css`); token adı doğrudan CSS değişkenidir (`kart-yuzey` → `--kart-yuzey`). Bileşenler temayı
+bilmez, yalnızca token okur; v1'den kalan adlar `tokens.css`'te v2 token'larına eşlenir (`--card-bg: var(--kart-yuzey)`).
+Kök öğede üç öznitelik vardır: `data-theme` (dört tema), `data-texture` (mantar · ahşap · cam · düz) ve `data-pin`
+(amanita · classic · glass · midnight). Tema önizlemeleri `[data-theme-scope]` ile o temanın token'larını tek bir öğeye uygular.
+
+### Fizik
+
+Yay değerleri `src/lib/physics.ts`'te `tokens.json`'ın `fizik` ailesinden okunur. Motion ile: varsayılan yay
+`stiffness 380 · damping 30 · mass 0.8`, raptiye saplanması `520 · 18`. Masaüstünde pano boş yüzeyden sürüklenerek
+kaydırılır (inertia power 0.8, timeConstant ~350 ms, kenarlarda direnç); telefonda şeritler yatay `scroll-snap` ile kayar.
+dnd-kit kart sürüklemesi için kalır (MouseSensor 6 px, TouchSensor 180 ms). Hareket azaltma açıksa yaylar anında çözülür.
 
 ### Dürtme ve sesler
 
-- `useNudge` — `.app` sarmalayıcısını `left/top` ile titretir (transform kullanılmaz; sabit konumlu alt menü ve
-  çekmece bağlam kutusunu kaybetmez). `prefers-reduced-motion` açıksa titreme yerine kısa bir çerçeve parlaması.
+- `useNudge` — `.app` sarmalayıcısını `left/top` ile titretir (transform kullanılmaz; sabit konumlu çekmece bağlam
+  kutusunu kaybetmez), telefonda alta sabitlenen kapsül yuvasını da. `prefers-reduced-motion` açıksa titreme yerine
+  kısa bir çerçeve parlaması.
 - `lib/sounds.ts` — tek `AudioContext`, ilk tıklamada açılır; her ses birkaç osilatör + kazanç zarfı, bittiğinde
   düğümler kopar. MSN dürtmesi: iki kare dalga (vuru), 26 Hz vibrato, 18 Hz tremolo, alçak geçiren süzgeç.
 
@@ -119,9 +151,11 @@ görünüm temaları (`data-skin`) yalnızca tokenları ezer; bileşenler tema b
 npm run dev             # istemci + API (hot reload)
 npm run build           # http modu (dist/) — npm start ile servis edilir
 npm run build:static    # local-first statik derleme (BASE_PATH=/repo/ ile alt yol)
-npm run build:artifact  # claude.ai artifact (tek dosya, mcp modu)
-npm run build:themes    # scripts/themes.mjs → src/styles/themes/*.css
-npm test                # Notion eşleme testleri (sahte fetch)
+npm run build:artifact  # claude.ai artifact (tek dosya, mcp modu; Google Fonts'tan yalnızca Fraunces)
+npm run build:themes    # design/tokens.json → src/styles/themes/*.css
+npm run build:icons     # Amanita raptiye logosu → public/pin.svg, pin-180.png, pin-512.png (Playwright)
+npm run build:screenshots  # build:static sonrası → docs/screenshots/*.jpg (4 tema × masaüstü/telefon, odaklar, ayarlar, Süz)
+npm test                # Notion eşleme, tercih göçü ve pano odakları testleri
 npm run typecheck
 ```
 

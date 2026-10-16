@@ -4,20 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f3ece1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1c1815" media="(prefers-color-scheme: dark)" />
+    <!-- Amanita zemini; seçilen temaya göre src/state/prefs.tsx günceller -->
+    <meta name="theme-color" content="#ebe4cf" />
     <meta name="description" content="Notion ile canlı senkron çalışan mantar pano görev uygulaması." />
     <link rel="icon" href="/pin.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/pin-180.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Mantar Pano</title>
     <script>
-      // İlk boyamada tema titremesini önlemek için tercihi erkenden uygula.
+      // İlk boyamada tema titremesini önlemek için tercihi erkenden uygula (src/state/prefsModel.ts ile aynı kural).
       try {
+        var root = document.documentElement;
+        // claude.ai görüntüleyicisi kendi açık/koyu seçimini kökte verebilir: ilk açılışta devralınsın diye sakla
+        var host = root.dataset.theme;
+        if (host) root.dataset.hostTheme = host;
+        var ids = ["amanita", "classic-cork", "cupertino-glass", "midnight-wood"];
         var t = localStorage.getItem("mp.theme");
-        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-        var s = localStorage.getItem("mp.skin");
-        if (s && s !== "mantar") document.documentElement.dataset.skin = s;
+        var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (t === "system") t = dark ? "midnight-wood" : "amanita";
+        else if (ids.indexOf(t) < 0) t = t === "dark" ? "midnight-wood" : localStorage.getItem("mp.prefs") ? "classic-cork" : host === "dark" ? "midnight-wood" : "amanita";
+        root.dataset.theme = t;
+        // Pano dokusu ve raptiye stili (src/lib/themes.ts varsayılanları)
+        var p = JSON.parse(localStorage.getItem("mp.prefs") || "{}") || {};
+        var tex = { amanita: "mantar", "classic-cork": "mantar", "cupertino-glass": "cam", "midnight-wood": "ahsap" };
+        var pin = { amanita: "amanita", "classic-cork": "classic", "cupertino-glass": "glass", "midnight-wood": "midnight" };
+        root.dataset.texture = p.v === 2 && p.texture && p.texture !== "auto" ? p.texture : tex[t];
+        root.dataset.pin = p.v === 2 && p.pinStyle && p.pinStyle !== "auto" ? p.pinStyle : pin[t];
       } catch (e) {}
     </script>
   </head>
