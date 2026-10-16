@@ -307,3 +307,54 @@ kbd {
   background: var(--surface-2);
   color: var(--ink-3);
 }
+
+/* ------------------------------------------------- Alt sayfa ve açılır öğeler */
+
+/* Süz, tarih ve ayarlar telefonda alttan açılan sayfa olur */
+.sheet-scrim {
+  display: none;
+}
+.sheet-grip {
+  display: none;
+  width: 36px;
+  height: 5px;
+  margin: 0 auto 2px;
+  border-radius: var(--radyus-kapsul);
+  background: var(--cizgi-2);
+}
+@media (max-width: 760px) {
+  .sheet-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .sheet-grip {
+    display: block;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.97);
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

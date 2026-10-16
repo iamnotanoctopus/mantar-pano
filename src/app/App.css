@@ -1,58 +1,67 @@
-.main {
+/* Uygulama iskeleti: üst çubuk + tek pano (masaüstü), telefonda kapsül altta */
+html,
+body {
+  overflow: hidden;
+  height: 100%;
+}
+.app {
   flex: 1;
+  height: 100dvh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  padding: 0 var(--adim-6) var(--adim-6);
+  padding-left: max(var(--adim-6), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--adim-6), env(safe-area-inset-right, 0px));
 }
-@media (max-width: 760px) {
-  .main {
-    padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
-  }
+.app > .board {
+  flex: 1;
+  margin-top: 8px;
 }
 
 .banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px max(var(--gutter), env(safe-area-inset-right, 0px)) 0 max(var(--gutter), env(safe-area-inset-left, 0px));
+  margin-top: 8px;
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 13px;
+  font: var(--yazi-govde);
 }
 .banner--error {
   background: var(--danger-soft);
-  color: var(--danger);
-  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--tehlike);
+  border: 1px solid color-mix(in srgb, var(--tehlike) 30%, transparent);
 }
 .banner--error .btn {
-  color: var(--ink);
+  color: var(--murekkep);
 }
 
-/* Yükleniyor iskeleti */
+/* Yükleniyor iskeleti: pano çerçevesi içinde */
 .skeleton {
+  position: absolute;
+  inset: 0;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(220px, 1fr);
-  gap: 16px;
-  padding-block: 28px;
-  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+  grid-auto-columns: minmax(236px, 1fr);
+  gap: var(--adim-5);
+  padding: 40px var(--adim-6) var(--adim-6);
   overflow: hidden;
 }
 .skeleton__col {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 .skeleton__line,
 .skeleton__card {
-  border-radius: 10px;
-  background: linear-gradient(90deg, var(--surface-3) 0%, var(--surface-2) 50%, var(--surface-3) 100%);
+  border-radius: var(--radyus-kart);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--kart-yuzey) 55%, transparent) 0%, color-mix(in srgb, var(--kart-yuzey) 85%, transparent) 50%, color-mix(in srgb, var(--kart-yuzey) 55%, transparent) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
 .skeleton__line {
-  height: 14px;
+  height: 30px;
 }
 .skeleton__card {
   height: 86px;
@@ -63,5 +72,33 @@
   }
   to {
     background-position: -200% 0;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Alttaki kapsül yuvası (kapsül, odak notu, hafta gezgini) panonun altında yer açar */
+  .app {
+    --dock-h: 96px;
+    padding: max(6px, env(safe-area-inset-top)) 12px calc(var(--dock-h) + env(safe-area-inset-bottom));
+  }
+  .app[data-note] {
+    --dock-h: 124px;
+  }
+  .app[data-focus="week"] {
+    --dock-h: 148px;
+  }
+  .app[data-focus="week"][data-note] {
+    --dock-h: 176px;
+  }
+  .skeleton {
+    grid-auto-columns: min(292px, calc(100vw - 72px));
+    gap: 16px;
+    padding: 26px 16px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton__line,
+  .skeleton__card {
+    animation: none;
   }
 }

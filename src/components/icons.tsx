@@ -170,4 +170,9 @@ export const IconNudge = (p: P) => (
   </svg>
 );
 
-/** Marka: raptiye */
+/** Süz: azalan çizgiler */
+export const IconFilter = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 7h16M7 12h10M10 17h4" />
+  </svg>
+);

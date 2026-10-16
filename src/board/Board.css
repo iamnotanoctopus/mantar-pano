@@ -1,0 +1,234 @@
+/* ------------------------------------------------------------------ Pano */
+
+.board {
+  position: relative;
+  min-height: 0;
+  border: var(--pano-cerceve-kalinlik) solid var(--pano-cerceve);
+  border-radius: var(--radyus-pano);
+  box-shadow: inset 0 0 0 1px var(--pano-cerceve-2), 0 30px 70px -40px rgba(0, 0, 0, 0.55);
+  background: var(--pano-desen), var(--pano-yuzey);
+  backdrop-filter: var(--pano-filtre);
+  -webkit-backdrop-filter: var(--pano-filtre);
+  overflow: hidden;
+}
+.board__view {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.board__lanes {
+  display: flex;
+  gap: var(--adim-5);
+  padding: 40px var(--adim-6) var(--adim-6);
+  align-items: flex-start;
+  min-height: 100%;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+.board__empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 320px;
+  padding: 10px 16px;
+  border-radius: var(--radyus-kart);
+  background: var(--kapsul-yuzey);
+  border: 1px solid var(--kapsul-kenar);
+  font: var(--yazi-govde);
+  color: var(--murekkep-2);
+  text-align: center;
+  pointer-events: none;
+}
+.board__hint {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  font: var(--yazi-etiket);
+  letter-spacing: var(--yazi-etiket-aralik);
+  color: var(--kapsul-murekkep);
+  background: var(--kapsul-yuzey);
+  border: 1px solid var(--kapsul-kenar);
+  border-radius: var(--radyus-kapsul);
+  padding: 4px 10px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+.board__dots {
+  display: none;
+}
+
+/* --------------------------------------------------------------- Şerit */
+
+.lane {
+  --lane-c: var(--c-gray);
+  --lane-tilt: 0deg;
+  flex: 1 1 0;
+  min-width: 236px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-radius: var(--radyus-kart);
+  transition: background var(--dur) var(--ease);
+}
+.lane.is-over {
+  background: color-mix(in srgb, var(--kart-yuzey) 22%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--lane-c) 45%, transparent);
+}
+/* Şerit başlığı: panoya iğnelenmiş küçük etiket kâğıdı */
+.lane__label {
+  position: relative;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px 6px 10px;
+  margin-bottom: 4px;
+  background: var(--kart-yuzey);
+  border: 1px solid var(--kart-kenar);
+  border-radius: 6px;
+  box-shadow: var(--golge-kart);
+  transform: rotate(var(--lane-tilt));
+}
+.lane__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radyus-kapsul);
+  background: var(--lane-c);
+}
+.lane__title {
+  flex: none;
+  font: var(--yazi-pano-bolge);
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" var(--yazi-pano-bolge-opsz);
+  color: var(--murekkep);
+  white-space: nowrap;
+}
+.lane__sub,
+.lane__min {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lane__sub {
+  font: var(--yazi-meta);
+  color: var(--murekkep-3);
+  white-space: nowrap;
+}
+.lane[data-tone="today"] .lane__sub {
+  color: var(--murekkep-2);
+  font-weight: 600;
+}
+.lane__count {
+  flex: none;
+  font: var(--yazi-etiket);
+  letter-spacing: var(--yazi-etiket-aralik);
+  color: var(--murekkep-3);
+  padding: 1px 6px;
+  border-radius: var(--radyus-kapsul);
+  background: var(--vurgu-yumusak);
+}
+.lane__min {
+  font: var(--yazi-meta);
+  color: var(--murekkep-3);
+  white-space: nowrap;
+}
+.lane__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 24px;
+}
+.lane__empty {
+  padding: 14px 12px;
+  border: 1.5px dashed color-mix(in srgb, var(--murekkep) 24%, transparent);
+  border-radius: var(--radyus-kart);
+  font: var(--yazi-meta);
+  color: var(--murekkep-2);
+  text-align: center;
+  background: color-mix(in srgb, var(--kart-yuzey) 18%, transparent);
+}
+
+/* Koyu ve cam yüzeylerde boş durum ve hızlı ekleme okunsun */
+.lane .quickadd__btn {
+  color: var(--murekkep-2);
+}
+
+/* --------------------------------------------------------------- Telefon */
+@media (max-width: 760px) {
+  .board {
+    border-width: max(1px, calc(var(--pano-cerceve-kalinlik) * 0.6));
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--pano-cerceve-2), 0 24px 50px -30px rgba(0, 0, 0, 0.55);
+  }
+  .board__view {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .board__view::-webkit-scrollbar {
+    display: none;
+  }
+  .board__lanes {
+    gap: 16px;
+    padding: 26px 16px 34px;
+    height: 100%;
+  }
+  .lane {
+    flex: 0 0 min(292px, calc(100vw - 72px));
+    min-width: 0;
+    max-width: none;
+    max-height: 100%;
+    gap: 12px;
+    scroll-snap-align: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 2px 8px;
+    scrollbar-width: none;
+  }
+  .lane::-webkit-scrollbar {
+    display: none;
+  }
+  .lane__title {
+    font-size: 16px;
+    line-height: 20px;
+  }
+  .lane__cards {
+    gap: 12px;
+  }
+  .board__hint {
+    display: none;
+  }
+  .board__dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    pointer-events: none;
+  }
+  .board__dots i {
+    width: 4px;
+    height: 4px;
+    border-radius: var(--radyus-kapsul);
+    background: var(--kapsul-murekkep);
+    opacity: 0.35;
+    transition: width 260ms var(--ease), opacity 260ms var(--ease);
+  }
+  .board__dots i.is-on {
+    width: 16px;
+    opacity: 0.8;
+  }
+}

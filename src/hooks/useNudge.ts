@@ -7,7 +7,8 @@ const DURATION = 650;
 /**
  * MSN Messenger tarzı "dürtme": uygulama penceresi kısa süre titrer, buzz sesi çalar.
  * Animasyon `.app` sarmalayıcısında left/top üzerinden yapılır (transform kullanılmaz;
- * böylece sabit konumlu alt menü ve çekmece bağlam kutusunu kaybetmez).
+ * böylece sabit konumlu çekmece bağlam kutusunu kaybetmez). Telefonda alta sabitlenen
+ * kapsül yuvası (`.dock`) ayrıca titretilir.
  * `prefers-reduced-motion` açıksa titreme yerine kısa bir çerçeve parlaması gösterilir.
  */
 export function useNudge() {
@@ -16,7 +17,7 @@ export function useNudge() {
 
   return useCallback(() => {
     const el = document.querySelector<HTMLElement>(".app");
-    const nav = document.querySelector<HTMLElement>(".bnav");
+    const nav = document.querySelector<HTMLElement>(".dock");
     play("nudge");
     if (!el) return;
     if (timer.current) window.clearTimeout(timer.current);

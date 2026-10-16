@@ -1,62 +1,56 @@
 import { memo, type MouseEvent } from "react";
 import { STATUS_DOING, STATUS_DONE, type Schema, type Task } from "@shared/types";
 import { dayLabel } from "@/lib/dates";
-import { colorVar, formatDuration } from "@/lib/format";
-import { IconCheck, IconClock } from "./icons";
+import { areaColor, formatDuration } from "@/lib/format";
+import { IconCheck } from "./icons";
 import { Pin } from "./Pin";
 import "./TaskCard.css";
 
 export interface TaskCardProps {
   task: Task;
   schema: Schema;
-  /** board: alan sütununda, iğneli ve hafif eğik · list: düz liste satırı */
-  variant?: "board" | "list";
   showNote?: boolean;
-  showArea?: boolean;
   onOpen: (task: Task) => void;
   onToggleDone: (task: Task) => void;
+  /** Sürükleme katmanındaki kopya: kaldırılmış hâl */
   dragging?: boolean;
 }
 
-export const TaskCard = memo(function TaskCard({
-  task,
-  schema,
-  variant = "board",
-  showNote = true,
-  showArea = false,
-  onOpen,
-  onToggleDone,
-  dragging,
-}: TaskCardProps) {
+/** id'den sabit eğim: -0.9° … +0.9° (kâğıt elle iğnelenmiş gibi) */
+function tilt(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return Math.round(((((h % 2001) + 2001) % 2001) / 1000 - 1) * 90) / 100;
+}
+
+/**
+ * Görev kartı: kâğıt, raptiye, onay düğmesi, başlık (Fraunces, 2 satır), meta satırı
+ * (gün etiketi · süre · alan noktası + öncelik) ve isteğe bağlı not.
+ * Hâller: dinlenme · tutuldu · bitti · gecikmiş (yalnızca etiket rengi ve raptiyenin eğikliği).
+ */
+export const TaskCard = memo(function TaskCard({ task, schema, showNote = true, onOpen, onToggleDone, dragging }: TaskCardProps) {
   const area = schema.areas.find((a) => a.name === task.area);
-  const priority = schema.priorities.find((p) => p.name === task.priority);
   const done = task.status === STATUS_DONE;
   const doing = task.status === STATUS_DOING;
   const day = dayLabel(task.date);
   const dur = formatDuration(task.duration);
+  const overdue = day.tone === "overdue" && !done;
+  const metaLabel = task.priority ?? task.area;
 
   const toggle = (e: MouseEvent) => {
     e.stopPropagation();
     onToggleDone(task);
   };
 
-  const cls = [
-    "card",
-    `card--${variant}`,
-    done && "card--done",
-    doing && "card--doing",
-    dragging && "card--dragging",
-    day.tone === "overdue" && !done && "card--overdue",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const cls = ["card", done && "card--done", doing && "card--doing", dragging && "card--dragging", overdue && "card--overdue"].filter(Boolean).join(" ");
 
   return (
     <article
       className={cls}
-      style={{ "--c": colorVar(area?.color) } as React.CSSProperties}
+      style={{ "--tilt": `${tilt(task.id)}deg`, "--area-c": areaColor(task.area, area?.color) } as React.CSSProperties}
       onClick={() => onOpen(task)}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onOpen(task);
@@ -64,46 +58,33 @@ export const TaskCard = memo(function TaskCard({
       }}
       tabIndex={0}
       role="button"
-      aria-label={task.title}
+      aria-label={`${task.title || "Adsız kart"}${day.label ? `, ${day.label}` : ""}${done ? ", bitti" : ""}`}
     >
-      {variant === "board" && <Pin />}
-      <div className="card__main">
-        <button
-          type="button"
-          className="card__check"
-          onClick={toggle}
-          aria-label={done ? "Yeniden aç" : "Tamamlandı olarak işaretle"}
-          aria-pressed={done}
-          title={done ? "Yeniden aç" : doing ? "Sürüyor — tamamla" : "Tamamla"}
-        >
-          <IconCheck width={13} height={13} strokeWidth={2.6} />
-        </button>
-        <div className="card__body">
-          <h4 className="card__title">{task.title || <span className="muted">Adsız kart</span>}</h4>
-          {(day.label || dur || priority || (showArea && area)) && (
-            <div className="card__meta">
-              {day.label && <span className={`tag tag--day tag--${day.tone}`}>{day.label}</span>}
-              {dur && (
-                <span className="tag tag--dur">
-                  <IconClock />
-                  {dur}
-                </span>
-              )}
-              {priority && (
-                <span className="tag tag--dot" style={{ "--c": colorVar(priority.color) } as React.CSSProperties}>
-                  {priority.name}
-                </span>
-              )}
-              {showArea && area && (
-                <span className="tag tag--dot" style={{ "--c": colorVar(area.color) } as React.CSSProperties}>
-                  {area.name}
-                </span>
-              )}
-            </div>
+      <Pin />
+      <button
+        type="button"
+        className="card__check"
+        onClick={toggle}
+        aria-label={done ? "Yeniden aç" : "Tamamlandı olarak işaretle"}
+        aria-pressed={done}
+        title={done ? "Yeniden aç" : doing ? "Sürüyor — tamamla" : "Tamamla"}
+      >
+        <IconCheck width={12} height={12} strokeWidth={2.6} />
+      </button>
+      <h3 className="card__title">{task.title || <span className="muted">Adsız kart</span>}</h3>
+      {(day.label || dur || metaLabel) && (
+        <div className="card__meta">
+          {day.label && <span className={`card__day card__day--${day.tone}`}>{day.label}</span>}
+          {dur && <span className="card__dur">{dur}</span>}
+          {metaLabel && (
+            <span className="card__prio" title={task.area ?? undefined}>
+              <i className="card__area" aria-hidden />
+              {metaLabel}
+            </span>
           )}
-          {showNote && task.note && <p className="card__note">{task.note}</p>}
         </div>
-      </div>
+      )}
+      {showNote && task.note && <p className="card__note">{task.note}</p>}
     </article>
   );
 });

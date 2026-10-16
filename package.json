@@ -12,7 +12,7 @@
     "start": "NODE_ENV=production tsx server/src/index.ts",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p server/tsconfig.json --noEmit",
-    "test": "tsx server/test/notionRepo.test.ts && tsx src/test/prefs.test.ts",
+    "test": "tsx server/test/notionRepo.test.ts && tsx src/test/prefs.test.ts && tsx src/test/layouts.test.ts",
     "build:artifact": "vite build -c vite.artifact.config.ts && node scripts/build-artifact.mjs",
     "build:themes": "node scripts/build-themes.mjs",
     "build:icons": "tsx scripts/build-icons.mjs",
