@@ -3,9 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { localApi } from "@/data";
 import { useMeta, useRefresh } from "@/hooks/useTasks";
 import { relativeTime } from "@/lib/dates";
-import { SKINS } from "@/lib/skins";
+import { THEMES } from "@/lib/themes";
 import { VIEWS, type ViewId } from "@/lib/views";
-import { usePrefs, type Theme } from "@/state/prefs";
+import { usePrefs } from "@/state/prefs";
 import { useToast } from "./Toast";
 import {
   BrandPin,
@@ -17,12 +17,10 @@ import {
   IconExternal,
   IconList,
   IconMonitor,
-  IconMoon,
   IconPlus,
   IconRefresh,
   IconSearch,
   IconSettings,
-  IconSun,
   IconSunrise,
   IconUpcoming,
   IconX,
@@ -46,10 +44,11 @@ interface Props {
   fetching: boolean;
   error: string | null;
   searchRef: React.RefObject<HTMLInputElement | null>;
+  view: ViewId;
+  setView: (v: ViewId) => void;
 }
 
-export function Header({ query, onQuery, onNew, onNudge, syncedAt, fetching, error, searchRef }: Props) {
-  const { view, setView } = usePrefs();
+export function Header({ query, onQuery, onNew, onNudge, syncedAt, fetching, error, searchRef, view, setView }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -197,7 +196,7 @@ function SyncStatus({ syncedAt, fetching, error }: { syncedAt: string | null; fe
 /* --------------------------------------------------------------- Ayarlar */
 
 function SettingsMenu({ onNudge }: { onNudge: () => void }) {
-  const { theme, setTheme, skin, setSkin, showNotes, setShowNotes, sound, setSound, nudgeOnOverdue, setNudgeOnOverdue } = usePrefs();
+  const { theme, setTheme, showNotes, setShowNotes, sound, setSound, nudgeOnOverdue, setNudgeOnOverdue } = usePrefs();
   const { data: meta } = useMeta();
   const qc = useQueryClient();
   const toast = useToast();
@@ -218,12 +217,6 @@ function SettingsMenu({ onNudge }: { onNudge: () => void }) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
-
-  const themes: { id: Theme; label: string; Icon: typeof IconSun }[] = [
-    { id: "system", label: "Sistem", Icon: IconMonitor },
-    { id: "light", label: "Açık", Icon: IconSun },
-    { id: "dark", label: "Koyu", Icon: IconMoon },
-  ];
 
   const exportJson = async () => {
     const filename = `mantar-pano-${new Date().toISOString().slice(0, 10)}.json`;
@@ -288,36 +281,29 @@ function SettingsMenu({ onNudge }: { onNudge: () => void }) {
       {open && (
         <div className="settings__pop" role="menu">
           <div className="settings__section">
-            <span className="field__label">Görünüm teması</span>
-            <div className="skins" role="radiogroup" aria-label="Görünüm teması">
-              {SKINS.map((s) => (
+            <span className="field__label">Tema</span>
+            <div className="skins" role="radiogroup" aria-label="Tema">
+              {THEMES.map((t) => (
                 <button
-                  key={s.id}
+                  key={t.id}
                   type="button"
-                  className={`skin ${skin === s.id ? "is-active" : ""}`}
-                  aria-pressed={skin === s.id}
-                  title={s.hint}
-                  onClick={() => setSkin(s.id)}
+                  className={`skin ${theme === t.id ? "is-active" : ""}`}
+                  aria-pressed={theme === t.id}
+                  title={t.hint}
+                  onClick={() => setTheme(t.id)}
                 >
                   <span className="skin__swatch" aria-hidden>
-                    {s.swatch.map((c, i) => (
-                      <i key={i} style={{ background: c }} />
-                    ))}
+                    <i style={{ background: t.swatch.board }} />
+                    <i style={{ background: t.swatch.card }} />
+                    <i style={{ background: t.swatch.accent }} />
                   </span>
-                  <span className="skin__label">{s.label}</span>
+                  <span className="skin__label">{t.short}</span>
                 </button>
               ))}
             </div>
-          </div>
-          <div className="settings__section">
-            <span className="field__label">Tema</span>
-            <div className="seg">
-              {themes.map(({ id, label, Icon }) => (
-                <button key={id} className={`seg__btn ${theme === id ? "is-active" : ""}`} onClick={() => setTheme(id)}>
-                  <Icon width={14} height={14} /> {label}
-                </button>
-              ))}
-            </div>
+            <button className={`seg__btn ${theme === "system" ? "is-active" : ""}`} onClick={() => setTheme("system")}>
+              <IconMonitor width={14} height={14} /> Sisteme uy (açıkta Amanita, koyuda Midnight)
+            </button>
           </div>
           <div className="settings__section">
             <label className="settings__toggle">
@@ -406,8 +392,7 @@ function SettingsMenu({ onNudge }: { onNudge: () => void }) {
 
 /* ------------------------------------------------------ Mobil alt menü */
 
-export function BottomNav({ onNew }: { onNew: () => void }) {
-  const { view, setView } = usePrefs();
+export function BottomNav({ onNew, view, setView }: { onNew: () => void; view: ViewId; setView: (v: ViewId) => void }) {
   return (
     <nav className="bnav" aria-label="Görünümler">
       {VIEWS.slice(0, 2).map((v) => (

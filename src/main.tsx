@@ -5,11 +5,8 @@ import App from "./app/App";
 import { PrefsProvider } from "./state/prefs";
 import { ToastProvider } from "./components/Toast";
 import { ApiError } from "./data/http";
+// Başlıklar Fraunces (opsz ekseniyle); arayüz metni sistem yazı tipi (SF Pro / Segoe UI / system-ui).
 import "@fontsource-variable/fraunces/full.css";
-import "@fontsource-variable/inter";
-import "@fontsource/rajdhani/500.css";
-import "@fontsource/rajdhani/600.css";
-import "@fontsource/rajdhani/700.css";
 import "./styles/base.css";
 import "./styles/themes/index.css";
 

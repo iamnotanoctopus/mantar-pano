@@ -1,46 +1,38 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { isSkin, type SkinId } from "@/lib/skins";
-import type { ViewId } from "@/lib/views";
+import { resolveTheme, themeDef, type PinShape, type TextureId, type ThemeId, type ThemePref } from "@/lib/themes";
+import { migratePrefs, type Filters, type Focus, type PinPref, type Prefs, type TexturePref } from "./prefsModel";
 
-export type Theme = "system" | "light" | "dark";
-
-interface Prefs {
-  theme: Theme;
-  skin: SkinId;
-  view: ViewId;
-  showNotes: boolean;
-  sound: boolean;
-  nudgeOnOverdue: boolean;
-}
+export type { Filters, Focus, PinPref, TexturePref } from "./prefsModel";
 
 interface PrefsCtx extends Prefs {
-  setTheme: (t: Theme) => void;
-  setSkin: (s: SkinId) => void;
-  setView: (v: ViewId) => void;
+  setTheme: (t: ThemePref) => void;
+  setTexture: (t: TexturePref) => void;
+  setPinStyle: (p: PinPref) => void;
   setShowNotes: (b: boolean) => void;
   setSound: (b: boolean) => void;
   setNudgeOnOverdue: (b: boolean) => void;
-  resolvedTheme: "light" | "dark";
+  setFocus: (f: Focus) => void;
+  setFilters: (f: Filters) => void;
+  setShowDone: (b: boolean) => void;
+  /** "system" çözülmüş hâli: kökteki data-theme */
+  resolvedTheme: ThemeId;
+  /** Temanın varsayılanı ya da kullanıcının seçtiği doku/raptiye */
+  resolvedTexture: TextureId;
+  resolvedPin: PinShape;
 }
 
 const KEY = "mp.prefs";
-const DEFAULTS: Prefs = { theme: "system", skin: "mantar", view: "board", showNotes: true, sound: true, nudgeOnOverdue: true };
 const Ctx = createContext<PrefsCtx | null>(null);
 
 function load(): Prefs {
+  // claude.ai içinde açıldıysa görüntüleyenin açık/koyu seçimi kök öğede hazır gelir; ilk tercihte devralınır.
+  const host = document.documentElement.dataset.theme;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const p = { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Prefs>) };
-      if (!isSkin(p.skin)) p.skin = "mantar";
-      return p;
-    }
+    return migratePrefs(raw ? JSON.parse(raw) : null, host);
   } catch {
-    /* yok say */
+    return migratePrefs(null, host);
   }
-  // claude.ai içinde açıldıysa görüntüleyenin tema seçimi kök öğede hazır gelir; ilk tercih olarak devral.
-  const host = document.documentElement.dataset.theme;
-  return { ...DEFAULTS, theme: host === "dark" || host === "light" ? host : "system" };
 }
 
 export function PrefsProvider({ children }: { children: ReactNode }) {
@@ -57,40 +49,54 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(prefs));
-      // index.html'deki erken tema betiği için
-      if (prefs.theme === "system") localStorage.removeItem("mp.theme");
-      else localStorage.setItem("mp.theme", prefs.theme);
-      localStorage.setItem("mp.skin", prefs.skin);
+      // index.html'deki erken tema betiği için (ilk boyamada titreme olmasın)
+      localStorage.setItem("mp.theme", prefs.theme);
+      localStorage.removeItem("mp.skin");
     } catch {
       /* yok say */
     }
   }, [prefs]);
 
-  const resolvedTheme: "light" | "dark" = prefs.theme === "system" ? (systemDark ? "dark" : "light") : prefs.theme;
+  const resolvedTheme = resolveTheme(prefs.theme, systemDark);
+  const def = themeDef(resolvedTheme);
+  const resolvedTexture: TextureId = prefs.texture === "auto" ? def.texture : prefs.texture;
+  const resolvedPin: PinShape = prefs.pinStyle === "auto" ? def.pin : prefs.pinStyle;
 
   useEffect(() => {
     const root = document.documentElement;
-    if (prefs.theme === "system") delete root.dataset.theme;
-    else root.dataset.theme = prefs.theme;
-    if (prefs.skin === "mantar") delete root.dataset.skin;
-    else root.dataset.skin = prefs.skin;
-    const meta = document.querySelector('meta[name="theme-color"]:not([media])') ?? document.createElement("meta");
-    meta.setAttribute("name", "theme-color");
-    meta.setAttribute("content", getComputedStyle(root).getPropertyValue("--bg").trim() || (resolvedTheme === "dark" ? "#1c1815" : "#f3ece1"));
-    if (!meta.parentNode) document.head.appendChild(meta);
-  }, [prefs.theme, prefs.skin, resolvedTheme]);
+    root.dataset.theme = resolvedTheme;
+    const zemin = getComputedStyle(root).getPropertyValue("--zemin").trim();
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", zemin || "#ebe4cf"));
+  }, [resolvedTheme]);
 
   const set = <K extends keyof Prefs>(k: K) => (v: Prefs[K]) => setPrefs((p) => ({ ...p, [k]: v }));
   const setTheme = useCallback(set("theme"), []);
-  const setSkin = useCallback(set("skin"), []);
-  const setView = useCallback(set("view"), []);
+  const setTexture = useCallback(set("texture"), []);
+  const setPinStyle = useCallback(set("pinStyle"), []);
   const setShowNotes = useCallback(set("showNotes"), []);
   const setSound = useCallback(set("sound"), []);
   const setNudgeOnOverdue = useCallback(set("nudgeOnOverdue"), []);
+  const setFocus = useCallback(set("focus"), []);
+  const setFilters = useCallback(set("filters"), []);
+  const setShowDone = useCallback(set("showDone"), []);
 
   const value = useMemo<PrefsCtx>(
-    () => ({ ...prefs, resolvedTheme, setTheme, setSkin, setView, setShowNotes, setSound, setNudgeOnOverdue }),
-    [prefs, resolvedTheme, setTheme, setSkin, setView, setShowNotes, setSound, setNudgeOnOverdue],
+    () => ({
+      ...prefs,
+      resolvedTheme,
+      resolvedTexture,
+      resolvedPin,
+      setTheme,
+      setTexture,
+      setPinStyle,
+      setShowNotes,
+      setSound,
+      setNudgeOnOverdue,
+      setFocus,
+      setFilters,
+      setShowDone,
+    }),
+    [prefs, resolvedTheme, resolvedTexture, resolvedPin, setTheme, setTexture, setPinStyle, setShowNotes, setSound, setNudgeOnOverdue, setFocus, setFilters, setShowDone],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -12,12 +12,14 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Mantar Pano</title>
     <script>
-      // İlk boyamada tema titremesini önlemek için tercihi erkenden uygula.
+      // İlk boyamada tema titremesini önlemek için tercihi erkenden uygula (src/state/prefsModel.ts ile aynı kural).
       try {
+        var ids = ["amanita", "classic-cork", "cupertino-glass", "midnight-wood"];
         var t = localStorage.getItem("mp.theme");
-        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-        var s = localStorage.getItem("mp.skin");
-        if (s && s !== "mantar") document.documentElement.dataset.skin = s;
+        var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (t === "system") t = dark ? "midnight-wood" : "amanita";
+        else if (ids.indexOf(t) < 0) t = t === "dark" ? "midnight-wood" : localStorage.getItem("mp.prefs") ? "classic-cork" : "amanita";
+        document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>
   </head>

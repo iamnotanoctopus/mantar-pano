@@ -1,4 +1,44 @@
-/* Tüm görünüm temaları — üretilmiş dosya */
-@import "./msn.css";
-@import "./kumsal.css";
-@import "./cyberpunk.css";
+/* Mantar Pano v2 temaları — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
+@import "./amanita.css";
+@import "./classic-cork.css";
+@import "./cupertino-glass.css";
+@import "./midnight-wood.css";
+
+:root {
+  --adim-1: 4px;
+  --adim-2: 8px;
+  --adim-3: 12px;
+  --adim-4: 16px;
+  --adim-5: 24px;
+  --adim-6: 32px;
+  --adim-7: 48px;
+  --radyus-cip: 8px;
+  --radyus-kart: 10px;
+  --radyus-pano: 18px;
+  --radyus-cekmece: 20px;
+  --radyus-kapsul: 999px;
+  --aile-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --aile-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --yazi-marka: 600 22px/26px var(--aile-display);
+  --yazi-marka-opsz: 24;
+  --yazi-pano-bolge: 600 17px/22px var(--aile-display);
+  --yazi-pano-bolge-opsz: 18;
+  --yazi-kart-baslik: 600 15px/20px var(--aile-display);
+  --yazi-kart-baslik-opsz: 14;
+  --yazi-govde: 400 14px/20px var(--aile-ui);
+  --yazi-kapsul: 600 13px/16px var(--aile-ui);
+  --yazi-meta: 500 12px/16px var(--aile-ui);
+  --yazi-etiket: 600 11px/14px var(--aile-ui);
+  --yazi-etiket-aralik: 0.04em;
+  --yay-sertlik: 380;
+  --yay-sonum: 30;
+  --yay-kutle: 0.8;
+  --yay-raptiye-sertlik: 520;
+  --yay-raptiye-sonum: 18;
+  --kart-tut-olcek: 1.03;
+  --kart-tut-aci: 1.5deg;
+  --kart-tut-raptiye-yukselme: -3px;
+  --raptiye-saplanma-olcek: 1.2;
+  --pano-atalet-surtunme: 0.92;
+  --azaltilmis-hareket: 0;
+}

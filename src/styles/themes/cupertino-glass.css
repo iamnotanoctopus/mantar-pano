@@ -1,0 +1,42 @@
+/* Cupertino Glass — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
+:root[data-theme="cupertino-glass"] {
+  --zemin: #f2f2f7;
+  --pano-yuzey: rgba(255,255,255,0.55);
+  --pano-doku: #00000000;
+  --pano-cerceve: rgba(60,60,67,0.18);
+  --pano-cerceve-2: rgba(255,255,255,0.7);
+  --kart-yuzey: rgba(255,255,255,0.78);
+  --kart-kenar: rgba(60,60,67,0.16);
+  --murekkep: #1c1c1e;
+  --murekkep-2: #48484a;
+  --murekkep-3: #636366;
+  --cizgi: rgba(60,60,67,0.10);
+  --cizgi-2: rgba(60,60,67,0.20);
+  --vurgu: #0066cc;
+  --vurgu-2: #3a3a3c;
+  --vurgu-murekkep: #ffffff;
+  --vurgu-yumusak: rgba(0,102,204,0.10);
+  --raptiye-sapka: #8e8e93;
+  --raptiye-benek: #ffffff;
+  --raptiye-igne: #aeaeb2;
+  --kapsul-yuzey: rgba(255,255,255,0.62);
+  --kapsul-kenar: rgba(255,255,255,0.80);
+  --kapsul-murekkep: #1c1c1e;
+  --kapsul-aktif: #1c1c1e;
+  --kapsul-aktif-murekkep: #ffffff;
+  --cekmece-yuzey: rgba(255,255,255,0.85);
+  --tehlike: #c8102e;
+  --basari: #157f36;
+  --odak-halkasi: rgba(0,102,204,0.45);
+  --alan-is: #0066cc;
+  --alan-gorunurluk: #5856d6;
+  --alan-okul: #157f36;
+  --alan-kisisel: #c2410c;
+  --golge-kart: 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px -12px rgba(0,0,0,0.18);
+  --golge-kart-kaldir: 0 6px 12px -4px rgba(0,0,0,0.14), 0 28px 56px -16px rgba(0,0,0,0.28);
+  --golge-kapsul: 0 1px 3px rgba(0,0,0,0.08), 0 16px 40px -16px rgba(0,0,0,0.22);
+  --golge-cekmece: 0 0 0 1px rgba(60,60,67,0.12), -12px 0 56px -16px rgba(0,0,0,0.25);
+  color-scheme: light;
+  --pano-cerceve-kalinlik: 1px;
+  --pano-filtre: blur(20px) saturate(1.2);
+}

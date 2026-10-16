@@ -10,7 +10,7 @@ import { useNudge } from "@/hooks/useNudge";
 import { useSound } from "@/hooks/useSound";
 import { useCreateTask, useMeta, useSchema, useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { today } from "@/lib/dates";
-import { isDone } from "@/lib/views";
+import { isDone, type ViewId } from "@/lib/views";
 import { usePrefs } from "@/state/prefs";
 import { AllView } from "@/views/AllView";
 import { BoardView } from "@/views/BoardView";
@@ -26,7 +26,8 @@ interface DrawerRef {
 }
 
 export default function App() {
-  const { view, showNotes, skin, nudgeOnOverdue, setView } = usePrefs();
+  const { showNotes, nudgeOnOverdue } = usePrefs();
+  const [view, setView] = useState<ViewId>("board");
   const play = useSound();
   const nudge = useNudge();
   const toast = useToast();
@@ -89,8 +90,7 @@ export default function App() {
   /* MSN usulü dürtme: elle (D / buton) ya da açılışta gecikmiş kart varsa (oturumda bir kez) */
   const doNudge = useCallback(() => {
     nudge();
-    if (skin === "msn") toast.info("Bir dürtme gönderdin.");
-  }, [nudge, skin, toast]);
+  }, [nudge]);
 
   const nudgedRef = useRef(false);
   useEffect(() => {
@@ -161,6 +161,8 @@ export default function App() {
           fetching={tasksQ.isFetching}
           error={error}
           searchRef={searchRef}
+          view={view}
+          setView={setView}
         />
 
         <main className="main">
@@ -198,7 +200,7 @@ export default function App() {
         </main>
       </div>
 
-      <BottomNav onNew={() => newCard()} />
+      <BottomNav onNew={() => newCard()} view={view} setView={setView} />
       <TaskDrawer state={drawerState} schema={schema} onClose={closeDrawer} onCreated={() => play("pin")} onDeleted={() => play("delete")} />
     </>
   );
