@@ -206,7 +206,8 @@
     scroll-snap-align: start;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 6px 2px 8px;
+    /* yanlarda 5px: kartın odak halkası (2px, 2px aralıkla) şeridin kaydırıcısında kırpılmasın */
+    padding: 6px 5px 8px;
     scrollbar-width: none;
   }
   .lane::-webkit-scrollbar {

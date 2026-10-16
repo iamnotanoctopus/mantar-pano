@@ -5,6 +5,8 @@ import { useEffect, type RefObject } from "react";
  * `ignore` içindeki öğelere (ör. menüyü açan düğme) tıklamak kapatmaz.
  * Esc ile kapanınca odak `returnFocus`un verdiği öğeye (genellikle açan düğme) döner;
  * dışarı tıklanınca odak kullanıcının tıkladığı yerde kalır.
+ * Perde (scrim) kendi onClick'iyle kapatır: pointerdown'da kapanıp anında kalkarsa (hareketi azalt) dokunuşun
+ * click'i alttaki karta düşüyor, odak da body'ye kayıyordu.
  */
 export function useDismiss(
   open: boolean,
@@ -18,6 +20,7 @@ export function useDismiss(
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (ref.current?.contains(t) || ignore.some((r) => r.current?.contains(t))) return;
+      if ((t as Element).closest?.(".sheet-scrim, .drawer-scrim")) return;
       onClose();
     };
     const onKey = (e: KeyboardEvent) => {

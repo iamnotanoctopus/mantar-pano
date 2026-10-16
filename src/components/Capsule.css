@@ -220,8 +220,13 @@
   .capsule__week {
     display: none;
   }
+  /* Arama açıkken kapsül ekrana sığsın: yalnızca seçili odak (ikon) kalır, alan kalan genişliğe göre daralır */
+  .capsule:has(.capsule__search.is-open) .capsule__seg:not([aria-pressed="true"]),
+  .capsule:has(.capsule__search.is-open) .capsule__seg-label {
+    display: none;
+  }
   .capsule__search.is-open .capsule__input {
-    width: min(140px, 30vw);
+    width: min(150px, calc(100vw - 264px));
   }
   .weeknav__step,
   .weeknav__date {

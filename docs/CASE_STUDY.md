@@ -178,7 +178,7 @@ Hiçbir geçiş `linear` ya da `150ms ease-in-out` değil; her hareket bir yay. 
 |---|---|
 | Kart tutuldu | ölçek 1.03, sürükleme yönüne göre ±1.5°, gölge `golge-kart-kaldir`, raptiye 3px yukarı (yay 380/30/0.8) |
 | Başka şeride bırakıldı | kart bırakıldığı noktadan, ölçekli ve eğik hâlinden yeni yerine yaylanır; raptiye 1.2 → 1.0 (520/18) |
-| Aynı şeride / iptal | dnd-kit kartı geri götürür; WAAPI `linear()` eğrisi aynı yayın sayısal çözümünden üretilir |
+| Aynı şeride / iptal | kart aynı iniş yayıyla, bırakıldığı noktadan eski yerine döner; raptiye yine 1.2 → 1.0 |
 | Odak/süzgeç değişti | kartlar `layoutId` ile yeni şeride kayar, çıkanlar `opacity 0 · scale 0.96` ile söner |
 | Pano kaydırıldı | boş yüzeyden sürükle; atalet power 0.8, timeConstant ~350 ms; kenarda `dragElastic` direnci |
 | Çekmece | sağdan `x: 100% → 0` (telefonda alttan) |
@@ -194,7 +194,9 @@ Kart ve raptiye eğimleri de CSS'in bağımsız `rotate`/`translate` özellikler
 **(3)** Birleştirmeden önce üç bağımsız inceleme (mantık, fizik ve erişilebilirlik, şartnameye uyum) Playwright ile
 yeniden üretilen ~30 bulgu çıkardı; en öğreticileri zamanlamaydı. İyimser güncelleme `cancelQueries`'i beklediği için
 kart bir çizim boyunca *hâlâ eski şeritteydi* ve iniş animasyonu o eski kopyaya uygulanıyordu (iniş artık yalnızca hedef
-şeride verilir, eski kopya o arada gizlenir). Odak değişince başa kayan yay, aynı anda daralan sınırı gören ikinci bir
+şeride verilir; eski kopya o bir-iki kare bırakıldığı yerde bekler, böylece boş kare de kalmaz). dnd-kit'in geri dönüş
+animasyonu da tamamen bırakıldı: kaynak kart görünüm dışındayken `scrollIntoView` ile panoyu tek karede sıçratıyordu;
+iptal ve aynı şerit de artık aynı iniş yayıyla oynar, pano (telefonda kaydırma) aynı anda aynı yayla hizalanır. Odak değişince başa kayan yay, aynı anda daralan sınırı gören ikinci bir
 yayla eziliyordu (sınır artık o anki ara değere değil gidilen hedefe göre uygulanır). Pano `transform` ile kaydığından
 dnd-kit'in bırakma alanı ölçüleri eskiyordu; kenarda bekleyen kartta pano kaydıkça ölçüler yenilenir. Ayrıca iyimser
 `temp-…` kimliği gerçeğiyle değişince kart yeniden doğuyordu: React anahtarı, `layoutId` ve eğim artık oturum boyunca

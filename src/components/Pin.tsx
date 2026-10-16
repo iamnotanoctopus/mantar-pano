@@ -1,4 +1,4 @@
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { animate, motion, useMotionValue } from "motion/react";
 import { PINS, type PinFill } from "@/lib/brand";
 import { LIFT, PIN_POP, PIN_SPRING } from "@/lib/physics";
@@ -22,14 +22,15 @@ export function Pin({ shape, className, pop }: { shape?: PinShape; className?: s
    */
   const scale = useMotionValue(1);
   const y = useMotionValue(0);
+  const anims = useRef<{ stop: () => void }[]>([]);
   useLayoutEffect(() => {
-    if (!pop) return;
+    if (!pop) return; // pop kapanınca yay yarıda kesilmez, kendi kendine 1'e oturur
     // jump: değer hızsız başlar (set bir sıçrama hızı bırakır, yay 1.2'nin üstüne taşardı)
     scale.jump(PIN_POP);
     y.jump(LIFT.pinRise);
-    const a = [animate(scale, 1, PIN_SPRING), animate(y, 0, PIN_SPRING)];
-    return () => a.forEach((x) => x.stop());
+    anims.current = [animate(scale, 1, PIN_SPRING), animate(y, 0, PIN_SPRING)];
   }, [pop, scale, y]);
+  useEffect(() => () => anims.current.forEach((a) => a.stop()), []);
   return (
     <motion.svg className={className ?? "pin"} viewBox="0 0 22 30" width="22" height="30" aria-hidden focusable="false" style={{ scale, y }}>
       {parts.map((p, i) => {

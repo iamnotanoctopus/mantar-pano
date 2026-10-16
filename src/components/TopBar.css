@@ -143,7 +143,7 @@
   }
 }
 /* Hafta + arama en geniş kapsüldür: dar masaüstünde düğme etiketleri ikona, logo işarete iner (üst üste binmesin) */
-@media (min-width: 1121px) and (max-width: 1300px) {
+@media (min-width: 1121px) and (max-width: 1400px) {
   .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__label,
   .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__caret,
   .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .logo__word {

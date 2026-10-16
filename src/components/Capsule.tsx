@@ -157,6 +157,7 @@ export function WeekNav({
         aria-haspopup="dialog"
         aria-expanded={dateOpen}
         aria-controls={dateOpen ? DATE_POPOVER_ID : undefined}
+        aria-label={`${weekRangeLabel(weekStart, true)} — takvimden hafta seç (T)`}
         title="Takvimden hafta seç (T)"
         onClick={onDateToggle}
       >
