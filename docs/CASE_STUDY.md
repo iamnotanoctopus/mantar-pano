@@ -177,7 +177,7 @@ Hiçbir geçiş `linear` ya da `150ms ease-in-out` değil; her hareket bir yay. 
 | Olay | Uygulama |
 |---|---|
 | Kart tutuldu | ölçek 1.03, sürükleme yönüne göre ±1.5°, gölge `golge-kart-kaldir`, raptiye 3px yukarı (yay 380/30/0.8) |
-| Başka şeride bırakıldı | kart bırakıldığı noktadan, ölçekli ve eğik hâlinden yeni yerine yaylanır; raptiye 1.2 → 1.0 (520/18) |
+| Başka şeride bırakıldı | kart (uçuş kopyası) bırakıldığı noktadan, ölçekli ve eğik hâlinden yeni yerine yaylanır; raptiye 1.2 → 1.0 (520/18) |
 | Aynı şeride / iptal | kart aynı iniş yayıyla, bırakıldığı noktadan eski yerine döner; raptiye yine 1.2 → 1.0 |
 | Odak/süzgeç değişti | kartlar `layoutId` ile yeni şeride kayar, çıkanlar `opacity 0 · scale 0.96` ile söner |
 | Pano kaydırıldı | boş yüzeyden sürükle; atalet power 0.8, timeConstant ~350 ms; kenarda `dragElastic` direnci |
@@ -191,16 +191,25 @@ kart başka şeride bırakılınca dnd-kit'in animasyonunu kapatıp kartı yeni 
 başlığını canlandırmak ve ref'i hem dnd-kit'e hem AnimatePresence'a bağlamak kartların gerçekten kaymasını sağladı.
 Kart ve raptiye eğimleri de CSS'in bağımsız `rotate`/`translate` özelliklerine taşındı ki Motion'ın `transform`'uyla çakışmasın.
 
-**(3)** Birleştirmeden önce üç bağımsız inceleme (mantık, fizik ve erişilebilirlik, şartnameye uyum) Playwright ile
-yeniden üretilen ~30 bulgu çıkardı; en öğreticileri zamanlamaydı. İyimser güncelleme `cancelQueries`'i beklediği için
-kart bir çizim boyunca *hâlâ eski şeritteydi* ve iniş animasyonu o eski kopyaya uygulanıyordu (iniş artık yalnızca hedef
-şeride verilir; eski kopya o bir-iki kare bırakıldığı yerde bekler, böylece boş kare de kalmaz). dnd-kit'in geri dönüş
-animasyonu da tamamen bırakıldı: kaynak kart görünüm dışındayken `scrollIntoView` ile panoyu tek karede sıçratıyordu;
-iptal ve aynı şerit de artık aynı iniş yayıyla oynar, pano (telefonda kaydırma) aynı anda aynı yayla hizalanır. Odak değişince başa kayan yay, aynı anda daralan sınırı gören ikinci bir
-yayla eziliyordu (sınır artık o anki ara değere değil gidilen hedefe göre uygulanır). Pano `transform` ile kaydığından
-dnd-kit'in bırakma alanı ölçüleri eskiyordu; kenarda bekleyen kartta pano kaydıkça ölçüler yenilenir. Ayrıca iyimser
-`temp-…` kimliği gerçeğiyle değişince kart yeniden doğuyordu: React anahtarı, `layoutId` ve eğim artık oturum boyunca
-kararlı bir anahtara bağlı (`src/lib/stableKey.ts`).
+**(3)** Birleştirmeden önce üç bağımsız inceleme (mantık, fizik ve erişilebilirlik, şartnameye uyum) ve ardından beş
+doğrulama turu (her bulguyu Playwright ile yeniden üreten bir ajan + onu çürütmeye çalışan ikinci bir ajan) yapıldı;
+en öğretici bulgular zamanlamaydı:
+
+- İyimser güncelleme `cancelQueries`'i beklediği için kart bir çizim boyunca *hâlâ eski şeritteydi*; iniş animasyonu o
+  eski kopyaya uygulanıyor, sonra bir kare boş kalıyordu. dnd-kit'in geri dönüş animasyonu da kaynak kart görünüm
+  dışındayken `scrollIntoView` ile panoyu tek karede sıçratıyordu. Sonuçta her bırakma (başka şerit, aynı şerit, iptal)
+  tek bir yolla oynar: gövdeye bağlı bir **uçuş kopyası** bırakıldığı yerden başlar, hedef yuvayı her karede canlı izler
+  (yuva o sırada görünmez), yerine oturunca yuvaya devreder. Hiçbir kaydırma kutusu onu kırpmaz, pano kayarken de doğru
+  yere iner; pano (telefonda kaydırma) aynı anda aynı yayla hizalandığı için kart ekranda tek bir yay çizer.
+- Odak değişince başa kayan yay, aynı anda daralan sınırı gören ikinci bir yayla eziliyordu: sınır artık o anki ara
+  değere değil gidilen hedefe göre uygulanır. Hedefler de dönüşümsüz yerleşimden (`offsetLeft`) hesaplanır; yerleşim
+  yayındaki şeritlere göre ölçmek birkaç piksel kısa bırakıyordu.
+- Telefonda scroll-snap'i bir kaydırmanın ortasında geri açmak tarayıcıyı tek karede en yakın noktaya sıçratıyor: snap,
+  hizalama yayı (ya da kullanıcının kaydırması) bitene kadar kapalı kalır.
+- Pano `transform` ile kaydığından dnd-kit'in bırakma alanı ölçüleri eskiyordu; kenarda bekleyen kartta pano kaydıkça
+  ölçüler yenilenir. İyimser `temp-…` kimliği gerçeğiyle değişince kart yeniden doğuyordu: React anahtarı, `layoutId` ve
+  eğim artık oturum boyunca kararlı bir anahtara bağlı (`src/lib/stableKey.ts`).
+- Kapanış yayı süren perde ve paneller tıklamayı yutuyordu; `useIsPresent` ile kapanırken tıklanmaz olurlar.
 
 ### 8.6 Ölçümler
 
