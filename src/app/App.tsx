@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, MotionConfig } from "motion/react";
 import { STATUS_DONE, STATUS_TODO, type Task, type TaskInput, type TaskPatch } from "@shared/types";
 import { ApiError, appKey } from "@/data/http";
 import { Board } from "@/board/Board";
@@ -17,6 +18,7 @@ import { useSound } from "@/hooks/useSound";
 import { useCreateTask, useMeta, useSchema, useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { startOfWeek, today } from "@/lib/dates";
 import { plural } from "@/lib/format";
+import { SPRING } from "@/lib/physics";
 import { isDone } from "@/lib/views";
 import { usePrefs, type Focus } from "@/state/prefs";
 import "./App.css";
@@ -218,7 +220,8 @@ export default function App() {
   };
 
   return (
-    <>
+    // Tüm Motion geçişleri varsayılan yayla; "hareketi azalt" açıksa dönüşümler anında
+    <MotionConfig reducedMotion="user" transition={SPRING}>
       <div className="app" data-focus={focus} data-note={note ? "" : undefined}>
         <TopBar
           pinPulse={pinPulse}
@@ -308,6 +311,7 @@ export default function App() {
             schema={schema}
             showNotes={showNotes && focus === "areas"}
             empty={empty}
+            focusKey={focus}
             onOpen={openTask}
             onToggleDone={toggleDone}
             onDrop={dropCard}
@@ -317,7 +321,7 @@ export default function App() {
         )}
       </div>
 
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} onNudge={nudge} returnFocus={gearRef} />
+      <AnimatePresence>{settingsOpen && <SettingsDrawer key="settings" onClose={() => setSettingsOpen(false)} onNudge={nudge} returnFocus={gearRef} />}</AnimatePresence>
       <TaskDrawer
         state={drawerState}
         schema={schema}
@@ -328,7 +332,7 @@ export default function App() {
         }}
         onDeleted={() => play("delete")}
       />
-    </>
+    </MotionConfig>
   );
 }
 

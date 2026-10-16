@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { motion } from "motion/react";
 import type { Focus } from "@/state/prefs";
 import { addDays, weekRangeLabel } from "@/lib/dates";
 import { IconBoard, IconCalendar, IconChevronLeft, IconChevronRight, IconFilter, IconPlus, IconSearch, IconSunrise, IconX } from "./icons";
@@ -54,7 +55,8 @@ export function Capsule(p: Props) {
             title={`${label} (${key})`}
             onClick={() => p.onFocus(id)}
           >
-            {p.focus === id && <span className="capsule__pill" aria-hidden />}
+            {/* Seçili hap: layoutId ile bölümler arasında yaylanarak kayar */}
+            {p.focus === id && <motion.span layoutId="capsule-pill" className="capsule__pill" aria-hidden />}
             <Icon className="capsule__seg-icon" width={18} height={18} />
             <span className="capsule__seg-label">{label}</span>
           </button>

@@ -1,8 +1,11 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { localApi } from "@/data";
 import { useMeta } from "@/hooks/useTasks";
 import { useDismiss } from "@/hooks/useDismiss";
+import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
+import { INSTANT, SPRING } from "@/lib/physics";
 import { THEMES } from "@/lib/themes";
 import { usePrefs } from "@/state/prefs";
 import { useToast } from "./Toast";
@@ -11,15 +14,17 @@ import { IconExternal, IconNudge, IconX } from "./icons";
 import "./SettingsDrawer.css";
 
 interface Props {
-  open: boolean;
   onClose: () => void;
   onNudge: () => void;
   /** Kapanınca odağın döneceği düğme (dişli) */
   returnFocus: RefObject<HTMLElement | null>;
 }
 
-/** Tema & ayarlar çekmecesi: masaüstünde sağdan 360px, telefonda alt sayfa. */
-export function SettingsDrawer({ open, onClose, onNudge, returnFocus }: Props) {
+/**
+ * Tema & ayarlar çekmecesi: masaüstünde sağdan 360px (x: 100% → 0), telefonda alt sayfa (y: 100% → 0);
+ * yay 380/30/0.8. Arka plan 2px bulanık ve %20 karartılmış. AnimatePresence içinde açılıp kapanır.
+ */
+export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
   const prefs = usePrefs();
   const { data: meta } = useMeta();
   const qc = useQueryClient();
@@ -27,16 +32,18 @@ export function SettingsDrawer({ open, onClose, onNudge, returnFocus }: Props) {
   const ref = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  useDismiss(open, ref, onClose, [returnFocus]);
+  const phone = useMediaQuery(PHONE);
+  const reduce = useReducedMotion();
+  useDismiss(true, ref, onClose, [returnFocus]);
 
   useEffect(() => {
-    if (open) {
-      closeRef.current?.focus();
-      return () => returnFocus.current?.focus();
-    }
-  }, [open, returnFocus]);
+    closeRef.current?.focus();
+    const back = returnFocus.current;
+    return () => back?.focus();
+  }, [returnFocus]);
 
-  if (!open) return null;
+  const off = phone ? { y: "100%" } : { x: "100%" };
+  const t = reduce ? INSTANT : SPRING;
 
   const exportJson = async () => {
     const filename = `mantar-pano-${new Date().toISOString().slice(0, 10)}.json`;
@@ -94,8 +101,18 @@ export function SettingsDrawer({ open, onClose, onNudge, returnFocus }: Props) {
 
   return (
     <>
-      <div className="drawer-scrim" aria-hidden onClick={onClose} />
-      <aside ref={ref} className="settings" role="dialog" aria-modal="true" aria-label="Tema ve ayarlar">
+      <motion.div className="drawer-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={t} />
+      <motion.aside
+        ref={ref}
+        className="settings"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tema ve ayarlar"
+        initial={off}
+        animate={{ x: 0, y: 0 }}
+        exit={off}
+        transition={t}
+      >
         <i className="sheet-grip" aria-hidden />
         <div className="settings__head">
           <h2 className="settings__title">Tema &amp; ayarlar</h2>
@@ -211,7 +228,7 @@ export function SettingsDrawer({ open, onClose, onNudge, returnFocus }: Props) {
             Kısayollar: <kbd>N</kbd> yeni kart · <kbd>/</kbd> ara · <kbd>D</kbd> dürt · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> düzen · <kbd>T</kbd> takvim · <kbd>Esc</kbd> kapat
           </p>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 }

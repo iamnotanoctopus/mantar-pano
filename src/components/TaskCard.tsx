@@ -14,6 +14,8 @@ export interface TaskCardProps {
   onToggleDone: (task: Task) => void;
   /** Sürükleme katmanındaki kopya: kaldırılmış hâl */
   dragging?: boolean;
+  /** Kart az önce bırakıldı / eklendi: raptiye saplanır */
+  pop?: boolean;
 }
 
 /** id'den sabit eğim: -0.9° … +0.9° (kâğıt elle iğnelenmiş gibi) */
@@ -28,7 +30,7 @@ function tilt(id: string): number {
  * (gün etiketi · süre · alan noktası + öncelik) ve isteğe bağlı not.
  * Hâller: dinlenme · tutuldu · bitti · gecikmiş (yalnızca etiket rengi ve raptiyenin eğikliği).
  */
-export const TaskCard = memo(function TaskCard({ task, schema, showNote = true, onOpen, onToggleDone, dragging }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ task, schema, showNote = true, onOpen, onToggleDone, dragging, pop }: TaskCardProps) {
   const area = schema.areas.find((a) => a.name === task.area);
   const done = task.status === STATUS_DONE;
   const doing = task.status === STATUS_DOING;
@@ -60,7 +62,7 @@ export const TaskCard = memo(function TaskCard({ task, schema, showNote = true, 
       role="button"
       aria-label={`${task.title || "Adsız kart"}${day.label ? `, ${day.label}` : ""}${done ? ", bitti" : ""}`}
     >
-      <Pin />
+      <Pin pop={pop} />
       <button
         type="button"
         className="card__check"

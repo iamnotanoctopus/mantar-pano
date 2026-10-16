@@ -6,7 +6,6 @@
   background: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-  animation: fade-in 200ms var(--ease) both;
 }
 .settings {
   position: fixed;
@@ -24,7 +23,6 @@
   border-radius: var(--radyus-cekmece) 0 0 var(--radyus-cekmece);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  animation: drawer-in 380ms cubic-bezier(0.32, 1.08, 0.6, 1) both;
 }
 .settings__head {
   display: flex;
@@ -167,18 +165,11 @@
     border-radius: var(--radyus-cekmece) var(--radyus-cekmece) 0 0;
     padding-top: 10px;
     padding-bottom: env(safe-area-inset-bottom);
-    animation: sheet-up 360ms cubic-bezier(0.32, 1.08, 0.6, 1) both;
   }
   .settings__head {
     padding: 8px 20px 4px;
   }
   .settings__scroll {
     padding: 8px 20px 20px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .settings,
-  .drawer-scrim {
-    animation: none;
   }
 }

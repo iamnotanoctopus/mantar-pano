@@ -11,14 +11,21 @@
   -webkit-backdrop-filter: var(--pano-filtre);
   overflow: hidden;
 }
+/* Masaüstü: kaydırma Motion drag ile (transform); yerel kaydırma çubuğu yok */
 .board__view {
   position: absolute;
   inset: 0;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  cursor: grab;
+}
+.board.is-panning .board__view {
+  cursor: grabbing;
 }
 .board__lanes {
+  /* popLayout: çıkan şeritler/kartlar bu kutuya göre mutlak konumlanır */
+  position: relative;
+  will-change: transform;
   display: flex;
   gap: var(--adim-5);
   padding: 40px var(--adim-6) var(--adim-6);
@@ -141,6 +148,7 @@
   white-space: nowrap;
 }
 .lane__cards {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -169,6 +177,7 @@
     box-shadow: inset 0 0 0 1px var(--pano-cerceve-2), 0 24px 50px -30px rgba(0, 0, 0, 0.55);
   }
   .board__view {
+    cursor: auto;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;

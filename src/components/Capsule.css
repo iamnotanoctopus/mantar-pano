@@ -37,7 +37,7 @@
 .capsule__seg[aria-pressed="true"] {
   color: var(--kapsul-aktif-murekkep);
 }
-/* Seçili hap: adım 3'te layoutId ile bölümler arasında yaylanır */
+/* Seçili hap: Motion layoutId ile bölümler arasında yaylanır */
 .capsule__pill {
   position: absolute;
   inset: 0;
