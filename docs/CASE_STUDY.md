@@ -75,6 +75,9 @@ kirlenir; sunucu şemaya karşı doğrular ve 400 döner.
 
 ### 4.3 Tasarım sistemi: token'lar ve "skin"ler
 
+> v2'de bu düzen kaldırıldı: `data-skin`, `scripts/themes.mjs` ve Inter yerine `design/tokens.json` → dört
+> `data-theme` dosyası ve Fraunces + sistem yazı tipi geldi (§8.3–8.4).
+
 Tüm renk, yarıçap, gölge ve yazı tipi kararları `:root` token'larıdır. Koyu tema üç durumu kapsar (sistem / açık / koyu
 seçimi); görünüm temaları (`data-skin`) yalnızca token'ları ezer, bileşen CSS'i tema bilmez. Dört tema tek bir JS
 tanımından üretilir (`scripts/themes.mjs` → CSS), böylece yeni bir tema eklemek ~60 satırlık bir nesne yazmaktır.
@@ -105,7 +108,8 @@ kaydırmayla çakışmasın.
   gövdeleri, bilinmeyen seçeneğin reddi, arşivleme (`npm test`).
 - **Uçtan uca (Playwright):** üç derleme modunda da ekle → düzenle → tamamla → sürükle → sil akışı; local-first
   kalıcılık (yenileme sonrası kart duruyor); tema seçiminin kalıcılığı; dürtme sınıfının eklenmesi; JSON dışa aktarma.
-- **Görsel:** masaüstü/mobil, açık/koyu, dört tema için ekran görüntüleri (`docs/screenshots`).
+- **Görsel:** masaüstü/mobil, açık/koyu, dört tema için ekran görüntüleri (`docs/screenshots`; v1 görüntüleri v2'de
+  yenileriyle değiştirildi).
 
 ## 6. Sonuç
 
@@ -187,6 +191,15 @@ kart başka şeride bırakılınca dnd-kit'in animasyonunu kapatıp kartı yeni 
 başlığını canlandırmak ve ref'i hem dnd-kit'e hem AnimatePresence'a bağlamak kartların gerçekten kaymasını sağladı.
 Kart ve raptiye eğimleri de CSS'in bağımsız `rotate`/`translate` özelliklerine taşındı ki Motion'ın `transform`'uyla çakışmasın.
 
+**(3)** Birleştirmeden önce üç bağımsız inceleme (mantık, fizik ve erişilebilirlik, şartnameye uyum) Playwright ile
+yeniden üretilen ~30 bulgu çıkardı; en öğreticileri zamanlamaydı. İyimser güncelleme `cancelQueries`'i beklediği için
+kart bir çizim boyunca *hâlâ eski şeritteydi* ve iniş animasyonu o eski kopyaya uygulanıyordu (iniş artık yalnızca hedef
+şeride verilir, eski kopya o arada gizlenir). Odak değişince başa kayan yay, aynı anda daralan sınırı gören ikinci bir
+yayla eziliyordu (sınır artık o anki ara değere değil gidilen hedefe göre uygulanır). Pano `transform` ile kaydığından
+dnd-kit'in bırakma alanı ölçüleri eskiyordu; kenarda bekleyen kartta pano kaydıkça ölçüler yenilenir. Ayrıca iyimser
+`temp-…` kimliği gerçeğiyle değişince kart yeniden doğuyordu: React anahtarı, `layoutId` ve eğim artık oturum boyunca
+kararlı bir anahtara bağlı (`src/lib/stableKey.ts`).
+
 ### 8.6 Ölçümler
 
 | | v1 | v2 |
@@ -194,13 +207,13 @@ Kart ve raptiye eğimleri de CSS'in bağımsız `rotate`/`translate` özellikler
 | Gezinme öğesi | 5 sekme + mobil alt çubuk | 1 kapsül + 1 çekmece |
 | Tema üretimi | elle yazılmış JS nesnesi | `tokens.json` → 4 CSS dosyası |
 | JS paketi (gzip) | ~113 KB | ~165 KB (Motion ~50 KB) |
-| Testler | 1 dosya (Notion eşleme) | 3 dosya (+ tercih göçü, pano odakları) |
+| Testler | 1 dosya (Notion eşleme) | 3 dosya (+ tercih göçü, pano odakları ve bırakma kuralı) |
 | Varsayılan yay oturma süresi | — | ~460 ms (380/30/0.8, ζ ≈ 0.86) |
 
 Doğrulama: her adımda `typecheck · test · build:static`; Playwright ile pan sınırı ve kenar direnci, kartın
 şerit değiştirmesi ve kalıcılığı, odak değişiminde ara kareler, çekmecenin açılıp odağın dişliye dönmesi,
 telefonda scroll-snap ve "hareketi azalt" altında anında geçişler sınandı. Ekran görüntüleri
-`npm run build:screenshots` ile üretilir (4 tema × masaüstü/telefon).
+`npm run build:screenshots` ile üretilir (4 tema × masaüstü/telefon, üç odak, ayarlar ve telefonda Süz).
 
 ### 8.7 Sırada
 

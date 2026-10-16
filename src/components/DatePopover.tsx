@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Schema, Task } from "@shared/types";
-import { fromISODate, monthYear, startOfWeek, toISODate, today } from "@/lib/dates";
+import { addDays, fromISODate, monthYear, startOfWeek, toISODate, today } from "@/lib/dates";
 import { areaColor } from "@/lib/format";
 import { isDone, tasksByDate } from "@/lib/views";
-import { useDismiss } from "@/hooks/useDismiss";
+import { firstVisible, useDismiss } from "@/hooks/useDismiss";
+import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { IconChevronLeft, IconChevronRight } from "./icons";
 import "./DatePopover.css";
 
@@ -34,15 +36,24 @@ interface Props {
   schema: Schema;
 }
 
-/** Hafta odağının tarih şeridi: ay ızgarası popover'ı. Gün seçilince pano o haftaya kayar. */
+export const DATE_POPOVER_ID = "mp-takvim";
+
+/**
+ * Hafta odağının tarih şeridi: ay ızgarası popover'ı. Gün seçilince pano o haftaya (ve o günün şeridine) kayar.
+ * Ok tuşları günler arasında gezer (ay sınırında ızgara da kayar); Esc ya da seçim odağı açan düğmeye geri verir.
+ */
 export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, tasks, schema }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  useDismiss(open, ref, onClose, anchorRefs);
+  const phone = useMediaQuery(PHONE);
+  const back = () => firstVisible(anchorRefs);
+  useDismiss(open, ref, onClose, anchorRefs, back);
   const t0 = today();
   const [cursor, setCursor] = useState(() => {
     const d = fromISODate(weekStart);
     return { y: d.getFullYear(), m: d.getMonth() };
   });
+  /* Klavyeyle gezilen gün (ay değişince ızgara yeniden çizildikten sonra ona odaklanılır) */
+  const [focusDay, setFocusDay] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -52,20 +63,55 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
     requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>(".cal__cell.is-week")?.focus());
   }, [open, weekStart]);
 
+  useEffect(() => {
+    if (!focusDay) return;
+    ref.current?.querySelector<HTMLElement>(`.cal__cell[data-day="${focusDay}"]`)?.focus();
+    setFocusDay(null);
+  }, [focusDay, cursor]);
+
   const byDate = useMemo(() => tasksByDate(tasks), [tasks]);
   const cells = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor]);
-  if (!open) return null;
 
   const move = (delta: number) => {
     const d = new Date(cursor.y, cursor.m + delta, 1);
     setCursor({ y: d.getFullYear(), m: d.getMonth() });
   };
   const label = monthYear(new Date(cursor.y, cursor.m, 1));
+  const pick = (iso: string) => {
+    onPick(iso);
+    onClose();
+    back()?.focus();
+  };
+  const onCellKey = (e: KeyboardEvent<HTMLButtonElement>, iso: string) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const next = addDays(iso, step);
+    if (!cells.includes(next) || fromISODate(next).getMonth() !== cursor.m) {
+      const d = fromISODate(next);
+      setCursor({ y: d.getFullYear(), m: d.getMonth() });
+    }
+    setFocusDay(next);
+  };
+  const off = phone ? { y: "100%" } : { opacity: 0, y: -6, scale: 0.96 };
 
   return (
-    <>
-      <div className="sheet-scrim" aria-hidden onClick={onClose} />
-      <div ref={ref} className="cal" role="dialog" aria-label={`Takvim · ${label}`}>
+    <AnimatePresence>
+      {open && (
+        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+      )}
+      {open && (
+      <motion.div
+        key="cal"
+        ref={ref}
+        id={DATE_POPOVER_ID}
+        className="cal"
+        role="dialog"
+        aria-label={`Takvim · ${label}`}
+        initial={off}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={off}
+      >
         <i className="sheet-grip" aria-hidden />
         <div className="cal__head">
           <button type="button" className="cal__nav" onClick={() => move(-1)} aria-label="Önceki ay">
@@ -76,9 +122,9 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
             <IconChevronRight width={16} height={16} />
           </button>
         </div>
-        <div className="cal__grid" role="grid" aria-label={label}>
+        <div className="cal__grid" role="group" aria-label={label}>
           {DOW.map((d) => (
-            <span key={d} className="cal__dow" role="columnheader">
+            <span key={d} className="cal__dow" aria-hidden>
               {d}
             </span>
           ))}
@@ -91,14 +137,12 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
               <button
                 key={iso}
                 type="button"
-                role="gridcell"
                 className={cls}
-                aria-selected={inWeek}
-                aria-label={`${d.getDate()} ${label}${list.length ? `, ${list.length} kart` : ""}`}
-                onClick={() => {
-                  onPick(iso);
-                  onClose();
-                }}
+                data-day={iso}
+                aria-current={iso === t0 ? "date" : undefined}
+                aria-label={`${d.getDate()} ${monthYear(d)}${inWeek ? ", seçili hafta" : ""}${list.length ? `, ${list.length} kart` : ""}`}
+                onClick={() => pick(iso)}
+                onKeyDown={(e) => onCellKey(e, iso)}
               >
                 <span className="cal__day">{d.getDate()}</span>
                 <span className="cal__dots" aria-hidden>
@@ -111,17 +155,11 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
             );
           })}
         </div>
-        <button
-          type="button"
-          className="cal__today"
-          onClick={() => {
-            onPick(t0);
-            onClose();
-          }}
-        >
+        <button type="button" className="cal__today" onClick={() => pick(t0)}>
           Bu hafta
         </button>
-      </div>
-    </>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

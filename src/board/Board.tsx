@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -6,8 +6,8 @@ import {
   MeasuringStrategy,
   MouseSensor,
   TouchSensor,
-  defaultDropAnimationSideEffects,
   pointerWithin,
+  useDndContext,
   useDraggable,
   useDroppable,
   useSensor,
@@ -24,19 +24,25 @@ import { QuickAdd } from "@/components/QuickAdd";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatDuration } from "@/lib/format";
 import { EDGE_ELASTIC, INERTIA, INSTANT, LIFT, SPRING, SPRING_FALLBACK_EASING, springEasing, supportsLinearEasing } from "@/lib/physics";
+import { stableKey } from "@/lib/stableKey";
 import type { Lane } from "./layouts";
 import "./Board.css";
 
 interface Props {
   lanes: Lane[];
+  /** Tüm kartlar (yalnızca görünenler değil): "yeni eklendi" kararı buradan verilir */
+  tasks: Task[];
   schema: Schema;
   showNotes: boolean;
   empty: string | null;
-  /** Odak anahtarı: değişince pano başa (ya da bugüne) kayar */
+  /** Odak anahtarı (Hafta'da haftayla birlikte): değişince pano başa ya da `anchor` şeridine kayar */
   focusKey: string;
+  /** Odak değişince görünür kılınacak şeridin kimliği (ör. bugünün ya da takvimde seçilen günün şeridi) */
+  anchor: string | null;
   onOpen: (t: Task) => void;
   onToggleDone: (t: Task) => void;
-  onDrop: (t: Task, patch: TaskPatch) => void;
+  /** Kart başka şeride bırakıldı; gerçekten bir değişiklik yapıldıysa true */
+  onDrop: (t: Task, patch: TaskPatch) => boolean;
   onQuickAdd: (title: string, patch: TaskPatch) => void;
   onNewWithDraft: (draft: TaskPatch & { title?: string }) => void;
 }
@@ -44,6 +50,13 @@ interface Props {
 const LANE_TILTS = [-0.7, 0.5, -0.4, 0.6, -0.5, 0.4, -0.6, 0.5];
 /** Panı başlatmayan öğeler: kartlar ve kontroller (pan yalnızca boş pano yüzeyinde başlar) */
 const NO_PAN = ".card, .card-slot, button, input, textarea, select, a, label, .quickadd, .lane__label";
+/** Tutulan kartın panodaki yer tutucusu bu saydamlıkta kalır */
+const GHOST_OPACITY = 0.35;
+/** Kenar oto-kaydırması: kenara bu kadar yaklaşınca, kare başına bu kadar piksel */
+const EDGE_ZONE = 56;
+const EDGE_STEP = 9;
+/** Klavyeyle odaklanan öğe görünüm kenarına bu kadar yaklaşırsa pano kayar */
+const FOCUS_MARGIN = 24;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 interface Bounds {
@@ -51,9 +64,11 @@ interface Bounds {
   top: number;
 }
 
-/** Başka şeride bırakılan kart: bırakıldığı yer, ölçek ve eğimle iner (dnd-kit'in geri dönüş animasyonu yerine) */
+/** Başka şeride bırakılan kart: bırakıldığı yer, ölçek ve eğimle hedef şeritte iner (dnd-kit'in geri dönüş animasyonu yerine) */
 interface Landing {
   id: string;
+  /** Hedef şerit: iniş yalnızca orada oynar; kaynak şeritte kalan eski kopya o arada gizlenir */
+  lane: string;
   left: number;
   top: number;
   scale: number;
@@ -65,7 +80,7 @@ interface Landing {
  * telefonda şeritler yatay scroll-snap ile kayar. Odak/süzgeç değişince kartlar layout yayıyla yeni şeride geçer,
  * çıkanlar söner. Kartlar dnd-kit ile tutulur: yükselir, eğilir; bırakılınca yerine yaylanır, raptiye saplanır.
  */
-export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onToggleDone, onDrop, onQuickAdd, onNewWithDraft }: Props) {
+export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor, onOpen, onToggleDone, onDrop, onQuickAdd, onNewWithDraft }: Props) {
   const phone = useMediaQuery(PHONE);
   const reduce = Boolean(useReducedMotion());
   const viewRef = useRef<HTMLDivElement>(null);
@@ -74,8 +89,36 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
   const y = useMotionValue(0);
   const controls = useDragControls();
   const [bounds, setBounds] = useState<Bounds>({ left: 0, top: 0 });
+  const boundsRef = useRef(bounds);
+  boundsRef.current = bounds;
   const [panning, setPanning] = useState(false);
   const pan = !phone;
+
+  /*
+   * Panonun gitmekte olduğu yer. Bir yay sürerken yeni bir hedef (sınır daralması, klavye odağı) hesaplanacaksa
+   * o anki ara değerden değil bu hedeften hesaplanır; böylece iki animasyon birbirini ezmez.
+   */
+  const goal = useRef<{ x: number; y: number } | null>(null);
+  const panTo = useCallback(
+    (nx: number, ny: number, instant = false) => {
+      if (reduce || instant) {
+        goal.current = null;
+        x.stop();
+        y.stop();
+        x.set(nx);
+        y.set(ny);
+        return;
+      }
+      goal.current = { x: nx, y: ny };
+      const a = animate(x, nx, SPRING);
+      animate(y, ny, SPRING);
+      void a.then(() => {
+        if (goal.current?.x === nx && goal.current?.y === ny) goal.current = null;
+      });
+    },
+    [reduce, x, y],
+  );
+  const current = useCallback(() => goal.current ?? { x: x.get(), y: y.get() }, [x, y]);
 
   /* Pano sınırları: içerik görünümden büyükse o kadar kaydırılabilir */
   useLayoutEffect(() => {
@@ -93,34 +136,35 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
     return () => ro.disconnect();
   }, []);
 
-  /* Sınır daralırsa (ör. daha az şerit) pano yaylanarak içeri döner */
+  /* Sınır daralırsa (ör. daha az şerit) pano yaylanarak içeri döner — gidilen hedef sınır içindeyse dokunulmaz */
   useEffect(() => {
     if (!pan) {
+      goal.current = null;
       x.set(0);
       y.set(0);
       return;
     }
-    const t = reduce ? INSTANT : SPRING;
-    if (x.get() < bounds.left) animate(x, bounds.left, t);
-    if (y.get() < bounds.top) animate(y, bounds.top, t);
-  }, [bounds, pan, reduce, x, y]);
+    const c = current();
+    const nx = clamp(c.x, bounds.left, 0);
+    const ny = clamp(c.y, bounds.top, 0);
+    if (nx !== c.x || ny !== c.y) panTo(nx, ny);
+  }, [bounds, pan, current, panTo, x, y]);
 
-  /* Odak değişti: başa kay; Hafta'da bugünün şeridi görünsün */
+  /* Odak (ya da Hafta'da hafta / seçilen gün) değişti: başa ya da `anchor` şeridine kay */
   useEffect(() => {
     const vp = viewRef.current;
     const ct = contentRef.current;
     if (!vp || !ct) return;
-    const today = ct.querySelector<HTMLElement>('.lane[data-tone="today"]');
-    const target = today && focusKey === "week" ? Math.max(0, today.offsetLeft - 32) : 0;
+    // Kimlikle aranır: popLayout'ta sönmekte olan eski şeritler (ör. Bugün odağının "Bugün"ü) hâlâ DOM'dadır
+    const lane = anchor ? ct.querySelector<HTMLElement>(`.lane[data-lane="${CSS.escape(anchor)}"]`) : null;
     if (pan) {
-      const t = reduce ? INSTANT : SPRING;
-      animate(x, clamp(-target, Math.min(0, vp.clientWidth - ct.offsetWidth), 0), t);
-      animate(y, 0, t);
+      const target = lane ? Math.max(0, lane.offsetLeft - 32) : 0;
+      panTo(clamp(-target, Math.min(0, vp.clientWidth - ct.offsetWidth), 0), 0);
     } else {
-      vp.scrollTo({ left: target ? target + 16 : 0, behavior: reduce ? "auto" : "smooth" });
+      vp.scrollTo({ left: lane ? Math.max(0, lane.offsetLeft - 16) : 0, behavior: reduce ? "auto" : "smooth" });
     }
-    // yalnızca odak değişiminde çalışır (diğer değerler o anki hâlleriyle okunur)
-  }, [focusKey]);
+    // yalnızca odak/hedef değişiminde çalışır (diğer değerler o anki hâlleriyle okunur)
+  }, [focusKey, anchor]);
 
   /* Trackpad/tekerlek: iki parmakla kaydırma panoyu kaydırır */
   useEffect(() => {
@@ -137,6 +181,7 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
       }
       if (!dx && !dy) return;
       e.preventDefault();
+      goal.current = null;
       x.stop();
       y.stop();
       x.set(clamp(x.get() - dx, bounds.left, 0));
@@ -146,48 +191,129 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
     return () => vp.removeEventListener("wheel", onWheel);
   }, [pan, bounds, x, y]);
 
-  /* Klavyeyle odaklanan kart görünüm dışındaysa tarayıcının yerel kaydırmasını pana çevir */
-  const onNativeScroll = useCallback(() => {
+  /* Tarayıcının yerel kaydırması (ör. odaklanan öğeyi göstermek için) pana çevrilir; görünüm yerinde kalır */
+  const absorbScroll = useCallback(() => {
     const vp = viewRef.current;
     if (!vp || !pan || (vp.scrollLeft === 0 && vp.scrollTop === 0)) return;
-    x.set(clamp(x.get() - vp.scrollLeft, bounds.left, 0));
-    y.set(clamp(y.get() - vp.scrollTop, bounds.top, 0));
+    const c = current();
+    const sl = vp.scrollLeft;
+    const st = vp.scrollTop;
     vp.scrollLeft = 0;
     vp.scrollTop = 0;
-  }, [pan, bounds, x, y]);
+    panTo(clamp(c.x - sl, bounds.left, 0), clamp(c.y - st, bounds.top, 0), true);
+  }, [pan, bounds, current, panTo]);
+
+  /* Klavyeyle odaklanan öğe görünüm dışındaysa (sol ya da sağ, üst ya da alt) pano onu görünür kılacak kadar kayar */
+  useEffect(() => {
+    const vp = viewRef.current;
+    if (!vp || !pan) return;
+    const reveal = (el: HTMLElement) => {
+      absorbScroll();
+      const c = current();
+      const box = vp.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      // öğenin konumu o anki (belki yay ortasındaki) değere göre ölçüldü → hedef koordinatına çevir
+      const ox = c.x - x.get();
+      const oy = c.y - y.get();
+      let dx = 0;
+      let dy = 0;
+      if (r.right + ox > box.right - FOCUS_MARGIN) dx = box.right - FOCUS_MARGIN - (r.right + ox);
+      if (r.left + ox + dx < box.left + FOCUS_MARGIN) dx = box.left + FOCUS_MARGIN - (r.left + ox);
+      if (r.bottom + oy > box.bottom - FOCUS_MARGIN) dy = box.bottom - FOCUS_MARGIN - (r.bottom + oy);
+      if (r.top + oy + dy < box.top + FOCUS_MARGIN) dy = box.top + FOCUS_MARGIN - (r.top + oy);
+      if (dx || dy) panTo(clamp(c.x + dx, bounds.left, 0), clamp(c.y + dy, bounds.top, 0));
+    };
+    const onFocus = (e: FocusEvent) => {
+      const el = e.target as HTMLElement;
+      // Fareyle tıklanan kart panoyu oynatmaz (tutup sürüklemeye başlarken kaymasın); yalnızca klavye odağı
+      if (!el.matches(":focus-visible")) return;
+      requestAnimationFrame(() => reveal(el));
+    };
+    vp.addEventListener("focusin", onFocus);
+    return () => vp.removeEventListener("focusin", onFocus);
+  }, [pan, bounds, absorbScroll, current, panTo, x, y]);
 
   /* ----------------------------------------------------------- Sürükle-bırak */
   const [active, setActive] = useState<Task | null>(null);
   const [landing, setLanding] = useState<Landing | null>(null);
   /* "return": iptal / aynı şerit → dnd-kit kartı yayla eski yerine götürür · "land": kart yeni şeritte iner */
   const [dropMode, setDropMode] = useState<"return" | "land">("return");
-  const landed = landing?.id ?? null;
+  /* Geri dönen kart: tutulan kopya yerine uçarken asıl kart gizli kalır; kopya oturunca raptiyesi seker */
+  const [returning, setReturning] = useState<string | null>(null);
+  const [bounce, setBounce] = useState<string | null>(null);
   const liftScale = useMotionValue(1);
   const liftRotate = useMotionValue(0);
   const dir = useRef(0);
+  const edge = useRef(0);
+  const edgeLoop = useRef(0);
+  const remeasure = useRef<(() => void) | null>(null);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   );
 
+  const spring = useMemo(() => springEasing(), []);
+  const onReturned = useRef<(id: string) => void>(() => {});
+  onReturned.current = (id) => {
+    setReturning(null);
+    setBounce(id);
+  };
   const dropAnimation = useMemo<DropAnimation | null>(() => {
     if (reduce) return null;
-    const s = springEasing();
     return {
-      duration: s.duration,
-      easing: supportsLinearEasing() ? s.easing : SPRING_FALLBACK_EASING,
-      sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0" } } }),
+      duration: spring.duration,
+      easing: supportsLinearEasing() ? spring.easing : SPRING_FALLBACK_EASING,
+      // Kopya yerine oturduğunda asıl kart görünür olur ve raptiye saplanır
+      sideEffects: ({ active }) => () => onReturned.current(String(active.id)),
     };
-  }, [reduce]);
+  }, [reduce, spring]);
+
+  /* Pano transform ile kaydığından dnd-kit'in bırakma alanı ölçüleri eskir: kaydıkça yeniden ölçtür */
+  useEffect(() => {
+    if (!active || !pan) return;
+    let queued = false;
+    return x.on("change", () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        remeasure.current?.();
+      });
+    });
+  }, [active, pan, x]);
+
+  const stopEdgeLoop = () => {
+    edge.current = 0;
+    cancelAnimationFrame(edgeLoop.current);
+    edgeLoop.current = 0;
+  };
+  useEffect(() => stopEdgeLoop, []);
 
   const onDragStart = (e: DragStartEvent) => {
     setActive((e.active.data.current?.task as Task | undefined) ?? null);
     setLanding(null);
+    setReturning(null);
+    setBounce(null);
     setDropMode("return");
     dir.current = 0;
     liftScale.set(1);
     liftRotate.set(0);
     animate(liftScale, LIFT.scale, reduce ? INSTANT : SPRING);
+    /* Kart kenarda beklerken de pano kaymaya devam etsin (işaretçi kıpırdamasa bile) */
+    if (pan) {
+      const tick = () => {
+        if (edge.current) {
+          const b = boundsRef.current;
+          const nx = clamp(x.get() - edge.current * EDGE_STEP, b.left, 0);
+          if (nx !== x.get()) {
+            goal.current = null;
+            x.set(nx);
+          }
+        }
+        edgeLoop.current = requestAnimationFrame(tick);
+      };
+      edgeLoop.current = requestAnimationFrame(tick);
+    }
   };
 
   const onDragMove = (e: DragMoveEvent) => {
@@ -197,14 +323,12 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
       dir.current = d;
       animate(liftRotate, d * LIFT.rotate, reduce ? INSTANT : SPRING);
     }
-    /* Kenara yaklaşınca pano kendiliğinden kayar */
+    /* Kenara yaklaşınca pano kendiliğinden kayar (sürekli döngü onDragStart'ta) */
     const vp = viewRef.current;
     const r = e.active.rect.current.translated;
     if (!vp || !r || !pan) return;
     const box = vp.getBoundingClientRect();
-    const edge = 56;
-    if (r.right > box.right - edge) x.set(clamp(x.get() - 14, bounds.left, 0));
-    else if (r.left < box.left + edge) x.set(clamp(x.get() + 14, bounds.left, 0));
+    edge.current = r.right > box.right - EDGE_ZONE ? 1 : r.left < box.left + EDGE_ZONE ? -1 : 0;
   };
 
   const settleLift = () => {
@@ -213,54 +337,58 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
     animate(liftRotate, 0, t);
   };
 
+  /** İptal ya da aynı şerit: kopya eski yerine yaylanır; o sırada asıl kart gizli */
+  const returnCard = (id: string | null) => {
+    settleLift();
+    if (id && !reduce) setReturning(id);
+  };
+
   const onDragEnd = (e: DragEndEvent) => {
+    stopEdgeLoop();
     setActive(null);
     const task = e.active.data.current?.task as Task | undefined;
     const lane = lanes.find((l) => l.id === e.over?.id);
     const r = e.active.rect.current.translated;
-    if (!task || !lane?.drop || lane.tasks.some((t) => t.id === task.id) || !r) {
-      settleLift();
+    if (!task || !lane?.drop || lane.tasks.some((t) => t.id === task.id) || !r || !onDrop(task, lane.drop)) {
+      returnCard(task?.id ?? null);
       return;
     }
     // Aynı işlem içinde: DragOverlay geri dönüş animasyonunu çalıştırmaz, kart yeni yerinde bırakıldığı noktadan iner
     setDropMode("land");
-    setLanding({ id: task.id, left: r.left, top: r.top, scale: liftScale.get(), rotate: liftRotate.get() });
-    onDrop(task, lane.drop);
+    setLanding({ id: task.id, lane: lane.id, left: r.left, top: r.top, scale: liftScale.get(), rotate: liftRotate.get() });
   };
 
+  /* Geri dönüş animasyonu hiç oynamazsa (kopya zaten yerindeyse) asıl kart gizli kalmasın */
+  useEffect(() => {
+    if (!returning) return;
+    const t = window.setTimeout(() => setReturning(null), spring.duration + 200);
+    return () => window.clearTimeout(t);
+  }, [returning, spring]);
+
   /*
-   * Bırakılan ya da yeni eklenen kartın raptiyesi bir kez saplanır.
-   * İyimser ekleme önce "temp-…" kimliğiyle gelir; sunucu gerçek kimliği verince kart
-   * yeniden doğmuş sayılmaz (quiet: giriş animasyonu ve ikinci sekme yok).
-   * Süzgeç ya da odak değişince yeniden görünen kartlar da yeni sayılmaz (seen).
+   * Yeni eklenen kartın raptiyesi bir kez saplanır. "Yeni", görünür kartlara göre değil tüm kartlara göre
+   * belirlenir: süzgeç, arama ya da hafta değişince ilk kez görünen eski kartlar sekmez. Anahtar kararlıdır
+   * (stableKey): iyimser "temp-…" kimliği gerçeğiyle değişince kart yeniden doğmuş sayılmaz.
    */
   const seen = useRef<Set<string> | null>(null);
-  const prevVisible = useRef<Set<string>>(new Set());
   const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
-  const [quiet, setQuiet] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
-    const ids = new Set(lanes.flatMap((l) => l.tasks.map((t) => t.id)));
+    const keys = tasks.map((t) => stableKey(t.id));
     const before = seen.current;
-    seen.current = new Set([...(before ?? []), ...ids]);
-    const vanishedTemp = [...prevVisible.current].some((id) => id.startsWith("temp-") && !ids.has(id));
-    prevVisible.current = ids;
+    seen.current = new Set([...(before ?? []), ...keys]);
     if (!before) return;
-    const added = [...ids].filter((id) => !before.has(id));
-    if (!added.length) return;
-    if (vanishedTemp) {
-      setQuiet(new Set(added.filter((id) => !id.startsWith("temp-"))));
-      setFresh(new Set(added.filter((id) => id.startsWith("temp-"))));
-    } else setFresh(new Set(added));
-  }, [lanes]);
+    const added = keys.filter((k) => !before.has(k));
+    if (added.length) setFresh(new Set(added));
+  }, [tasks]);
   useEffect(() => {
-    if (!landed && fresh.size === 0 && quiet.size === 0) return;
+    if (!landing && fresh.size === 0 && !bounce) return;
     const t = window.setTimeout(() => {
       setLanding(null);
       setFresh(new Set());
-      setQuiet(new Set());
+      setBounce(null);
     }, 900);
     return () => window.clearTimeout(t);
-  }, [landed, fresh, quiet]);
+  }, [landing, fresh, bounce]);
 
   /* İlk yüklemede kartlar canlandırılmaz; sonradan gelenler (odak, süzgeç, ekleme) yaylanarak girer */
   const [settled, setSettled] = useState(false);
@@ -270,30 +398,34 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
   }, []);
 
   /* Telefon: görünen şerit → alttaki noktalar */
-  const [current, setCurrent] = useState(0);
+  const [shownLane, setShownLane] = useState(0);
   const onScroll = () => {
-    onNativeScroll();
+    absorbScroll();
     const vp = viewRef.current;
     if (!vp || pan) return;
     const first = vp.querySelector<HTMLElement>(".lane");
     const w = first ? first.offsetWidth + 16 : 1;
-    setCurrent(Math.round(vp.scrollLeft / w));
+    setShownLane(Math.round(vp.scrollLeft / w));
   };
 
   return (
-    <section id="pano" className={`board ${panning ? "is-panning" : ""}`} aria-label="Pano">
+    <section id="pano" className={`board ${panning ? "is-panning" : ""} ${active ? "is-dragging" : ""}`} aria-label="Pano">
       <DndContext
         sensors={sensors}
         collisionDetection={pointerWithin}
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        // Telefonda kenar kaydırması yumuşak: şerit şerit atlamasın, komşu şeride bırakılabilsin
+        autoScroll={{ threshold: { x: 0.12, y: 0.15 }, acceleration: 6 }}
         onDragStart={onDragStart}
         onDragMove={onDragMove}
         onDragEnd={onDragEnd}
-        onDragCancel={() => {
-          settleLift();
+        onDragCancel={(e) => {
+          stopEdgeLoop();
           setActive(null);
+          returnCard(String(e.active.id));
         }}
       >
+        <DroppableMeasure api={remeasure} />
         <div
           ref={viewRef}
           className="board__view"
@@ -314,7 +446,10 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
             dragElastic={EDGE_ELASTIC}
             dragMomentum={!reduce}
             dragTransition={INERTIA}
-            onDragStart={() => setPanning(true)}
+            onDragStart={() => {
+              goal.current = null;
+              setPanning(true);
+            }}
             onDragEnd={() => setPanning(false)}
           >
             <AnimatePresence mode="popLayout" initial={false} propagate>
@@ -325,9 +460,10 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
                   tilt={LANE_TILTS[i % LANE_TILTS.length]}
                   schema={schema}
                   showNotes={showNotes}
-                  landing={landing}
+                  landing={landing?.lane === lane.id ? landing : null}
+                  hidden={landing && landing.lane !== lane.id ? landing.id : returning}
+                  bounce={bounce}
                   fresh={fresh}
-                  quiet={quiet}
                   animateIn={settled}
                   reduce={reduce}
                   onOpen={onOpen}
@@ -352,11 +488,23 @@ export function Board({ lanes, schema, showNotes, empty, focusKey, onOpen, onTog
       </span>
       <span className="board__dots" aria-hidden>
         {lanes.map((l, i) => (
-          <i key={l.id} className={i === current ? "is-on" : undefined} />
+          <i key={l.id} className={i === shownLane ? "is-on" : undefined} />
         ))}
       </span>
     </section>
   );
+}
+
+/** dnd-kit'in bırakma alanlarını yeniden ölçme işlevini dışarı verir (yalnızca DndContext içinden erişilebilir) */
+function DroppableMeasure({ api }: { api: RefObject<(() => void) | null> }) {
+  const { measureDroppableContainers } = useDndContext();
+  useEffect(() => {
+    api.current = () => measureDroppableContainers([]);
+    return () => {
+      api.current = null;
+    };
+  }, [api, measureDroppableContainers]);
+  return null;
 }
 
 /** Tutulan kart: ölçek ve eğim MotionValue'dan gelir (bırakma animasyonu sırasında da yaylanır) */
@@ -389,9 +537,14 @@ interface LaneProps {
   tilt: number;
   schema: Schema;
   showNotes: boolean;
+  /** Bu şeride inen kart (yalnızca hedef şeride verilir) */
   landing: Landing | null;
+  /** Bu şeritte görünmez tutulacak kart: başka şeride inen kartın eski kopyası ya da geri dönmekte olan kart */
+  hidden: string | null;
+  /** Geri dönüp yerine oturan kart: raptiyesi seker */
+  bounce: string | null;
+  /** Yeni eklenen kartların kararlı anahtarları */
   fresh: ReadonlySet<string>;
-  quiet: ReadonlySet<string>;
   /** false: ilk yükleme (giriş animasyonu yok) */
   animateIn: boolean;
   reduce: boolean;
@@ -401,7 +554,7 @@ interface LaneProps {
   onNewWithDraft: (draft: TaskPatch & { title?: string }) => void;
 }
 
-const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, landing, fresh, quiet, animateIn, reduce, onOpen, onToggleDone, onQuickAdd, onNewWithDraft }: LaneProps) {
+const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, landing, hidden, bounce, fresh, animateIn, reduce, onOpen, onToggleDone, onQuickAdd, onNewWithDraft }: LaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: lane.id, disabled: !lane.drop });
   const sectionRef = useMergedRef<HTMLElement>(ref, setNodeRef);
   const t = reduce ? INSTANT : SPRING;
@@ -418,6 +571,7 @@ const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, la
       exit={{ opacity: 0, scale: 0.96 }}
       transition={t}
       className={`lane ${isOver ? "is-over" : ""}`}
+      data-lane={lane.id}
       data-tone={lane.tone}
       aria-label={lane.sub ? `${lane.title} · ${lane.sub}` : lane.title}
       style={{ "--lane-c": lane.color, "--lane-tilt": `${tilt}deg` } as React.CSSProperties}
@@ -433,22 +587,27 @@ const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, la
       </motion.header>
       <div className="lane__cards">
         <AnimatePresence mode="popLayout" initial={animateIn}>
-          {lane.tasks.map((task) => (
-            <DraggableCard
-              key={task.id}
-              task={task}
-              schema={schema}
-              showNote={showNotes}
-              pop={landed === task.id || fresh.has(task.id)}
-              // Bırakılan kart dnd-kit'in yay animasyonuyla iner; ikinci bir layout animasyonu karışmasın
-              shared={landed !== task.id}
-              landing={landing?.id === task.id ? landing : null}
-              enter={!quiet.has(task.id) && landed !== task.id}
-              reduce={reduce}
-              onOpen={onOpen}
-              onToggleDone={onToggleDone}
-            />
-          ))}
+          {lane.tasks.map((task) => {
+            const key = stableKey(task.id);
+            return (
+              <DraggableCard
+                key={key}
+                layoutKey={key}
+                task={task}
+                schema={schema}
+                showNote={showNotes}
+                pop={landed === task.id || bounce === task.id || fresh.has(key)}
+                // İnen kart kendi yayıyla iner; ikinci bir layout animasyonu karışmasın
+                shared={landed !== task.id}
+                landing={landed === task.id ? landing : null}
+                hidden={hidden === task.id}
+                enter={landed !== task.id}
+                reduce={reduce}
+                onOpen={onOpen}
+                onToggleDone={onToggleDone}
+              />
+            );
+          })}
         </AnimatePresence>
         {lane.tasks.length === 0 && (
           <motion.div className="lane__empty" initial={enterFrom} animate={{ opacity: 1, y: 0, scale: 1 }} transition={t}>
@@ -463,24 +622,29 @@ const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, la
 
 function DraggableCard({
   ref,
+  layoutKey,
   task,
   schema,
   showNote,
   pop,
   shared,
   landing,
+  hidden,
   enter,
   reduce,
   onOpen,
   onToggleDone,
 }: {
   ref?: Ref<HTMLDivElement>;
+  /** Kararlı anahtar (layoutId için) */
+  layoutKey: string;
   task: Task;
   schema: Schema;
   showNote: boolean;
   pop: boolean;
   shared: boolean;
   landing: Landing | null;
+  hidden: boolean;
   enter: boolean;
   reduce: boolean;
   onOpen: (t: Task) => void;
@@ -494,6 +658,11 @@ function DraggableCard({
   const y = useMotionValue(0);
   const rotate = useMotionValue(0);
   const lift = useMotionValue(1);
+  /* Giriş sönmesi yaylı; sonraki saydamlık değişimleri (tutuldu, gizlendi, yerine oturdu) anında */
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
 
   /* İniş: bırakıldığı noktadan (ölçekli ve eğik) yeni yerine yay 380/30/0.8 ile */
   useLayoutEffect(() => {
@@ -510,18 +679,20 @@ function DraggableCard({
     // yalnızca yeni bir iniş başladığında
   }, [landing, reduce, x, y, lift, rotate]);
 
+  const t = reduce ? INSTANT : SPRING;
   return (
     <motion.div
       ref={slotRef}
       {...listeners}
       style={{ x, y, rotate, scale: lift, zIndex: landing ? 5 : undefined }}
-      layoutId={shared ? `card-${task.id}` : undefined}
+      layoutId={shared ? `card-${layoutKey}` : undefined}
       layout={shared ? true : undefined}
       initial={enter ? { opacity: 0, scale: 0.96 } : false}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={reduce ? INSTANT : SPRING}
+      animate={{ opacity: hidden ? 0 : isDragging ? GHOST_OPACITY : 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96, transition: t }}
+      transition={{ ...t, opacity: mounted.current || hidden ? INSTANT : t }}
       className={`card-slot ${isDragging ? "is-ghost" : ""}`}
+      aria-hidden={hidden || undefined}
     >
       <TaskCard task={task} schema={schema} showNote={showNote} onOpen={onOpen} onToggleDone={onToggleDone} pop={pop && !reduce} />
     </motion.div>

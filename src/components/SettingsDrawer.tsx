@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { localApi } from "@/data";
 import { useMeta } from "@/hooks/useTasks";
-import { useDismiss } from "@/hooks/useDismiss";
+import { useDismiss, useFocusTrap } from "@/hooks/useDismiss";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { INSTANT, SPRING } from "@/lib/physics";
 import { THEMES, themeDef } from "@/lib/themes";
@@ -27,6 +27,8 @@ interface Props {
  * Tema & ayarlar çekmecesi: masaüstünde sağdan 360px (x: 100% → 0), telefonda alt sayfa (y: 100% → 0);
  * yay 380/30/0.8. Arka plan 2px bulanık ve %20 karartılmış. AnimatePresence içinde açılıp kapanır.
  */
+export const SETTINGS_ID = "mp-ayarlar";
+
 export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
   const prefs = usePrefs();
   const { data: meta } = useMeta();
@@ -38,6 +40,8 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
   const phone = useMediaQuery(PHONE);
   const reduce = useReducedMotion();
   useDismiss(true, ref, onClose, [returnFocus]);
+  // aria-modal: Tab / Shift+Tab çekmecenin içinde döner (arka plan ayrıca inert)
+  useFocusTrap(ref);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -125,6 +129,7 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
       <motion.div className="drawer-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={t} />
       <motion.aside
         ref={ref}
+        id={SETTINGS_ID}
         className="settings"
         role="dialog"
         aria-modal="true"

@@ -137,7 +137,7 @@
   flex: none;
   font: var(--yazi-etiket);
   letter-spacing: var(--yazi-etiket-aralik);
-  color: var(--murekkep-3);
+  color: var(--murekkep-2);
   padding: 1px 6px;
   border-radius: var(--radyus-kapsul);
   background: var(--vurgu-yumusak);
@@ -159,14 +159,14 @@
   border: 1.5px dashed color-mix(in srgb, var(--murekkep) 24%, transparent);
   border-radius: var(--radyus-kart);
   font: var(--yazi-meta);
-  color: var(--murekkep-2);
+  color: var(--murekkep);
   text-align: center;
   background: color-mix(in srgb, var(--kart-yuzey) 18%, transparent);
 }
 
-/* Koyu ve cam yüzeylerde boş durum ve hızlı ekleme okunsun */
+/* Hızlı ekleme çıplak pano yüzeyinde durur: küçük metin her temada ≥ 4.5:1 olsun diye tam mürekkep */
 .lane .quickadd__btn {
-  color: var(--murekkep-2);
+  color: var(--murekkep);
 }
 
 /* --------------------------------------------------------------- Telefon */
@@ -188,6 +188,10 @@
   .board__view::-webkit-scrollbar {
     display: none;
   }
+  /* Kart tutulurken şerit şerit yapışma kapalı: kenar kaydırması komşu şeride yumuşakça varsın */
+  .board.is-dragging .board__view {
+    scroll-snap-type: none;
+  }
   .board__lanes {
     gap: 16px;
     padding: 26px 16px 34px;
@@ -207,10 +211,6 @@
   }
   .lane::-webkit-scrollbar {
     display: none;
-  }
-  .lane__title {
-    font-size: 16px;
-    line-height: 20px;
   }
   .lane__cards {
     gap: 12px;

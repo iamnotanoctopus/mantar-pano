@@ -3,7 +3,7 @@ import { AnimatePresence, MotionConfig } from "motion/react";
 import { STATUS_DONE, STATUS_TODO, type Task, type TaskInput, type TaskPatch } from "@shared/types";
 import { ApiError, appKey } from "@/data/http";
 import { Board } from "@/board/Board";
-import { applyFilters, buildLayout, filtersActive } from "@/board/layouts";
+import { applyFilters, buildLayout, dropPatch, filtersActive } from "@/board/layouts";
 import { Capsule, FOCUS_DEFS, WeekNav } from "@/components/Capsule";
 import { DatePopover } from "@/components/DatePopover";
 import { FilterMenu } from "@/components/FilterMenu";
@@ -16,10 +16,10 @@ import { useToast } from "@/components/Toast";
 import { useNudge } from "@/hooks/useNudge";
 import { useSound } from "@/hooks/useSound";
 import { useCreateTask, useMeta, useSchema, useTasks, useUpdateTask } from "@/hooks/useTasks";
-import { startOfWeek, today } from "@/lib/dates";
+import { addDays, startOfWeek, today } from "@/lib/dates";
 import { plural } from "@/lib/format";
 import { SPRING } from "@/lib/physics";
-import { isDone } from "@/lib/views";
+import { isDone, type Horizon } from "@/lib/views";
 import { usePrefs, type Focus } from "@/state/prefs";
 import "./App.css";
 
@@ -46,6 +46,8 @@ export default function App() {
   const [dateOpen, setDateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(today()));
+  /* Takvimde seçilen gün: Hafta odağında pano o günün şeridine kayar */
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerRef | null>(null);
   /* Kart eklendi / iğnelendi: logo seker */
   const [pinPulse, setPinPulse] = useState(0);
@@ -58,7 +60,22 @@ export default function App() {
   const gearRef = useRef<HTMLButtonElement>(null);
 
   const tasks = useMemo(() => tasksQ.data?.tasks ?? [], [tasksQ.data]);
-  const layout = useMemo(() => buildLayout({ tasks, schema, focus, filters, showDone, query, weekStart }), [tasks, schema, focus, filters, showDone, query, weekStart]);
+  /*
+   * "Bugün" her çizimde yeniden okunur: sekme gece yarısını açık geçirirse (periyodik yenileme App'i yeniden çizer)
+   * Bugün/Yarın şeritleri ve hızlı ekleme dünün tarihinde kalmaz.
+   */
+  const t0 = today();
+  const h = useMemo<Horizon>(() => ({ today: t0, weekAhead: addDays(t0, 7) }), [t0]);
+  const thisWeek = startOfWeek(t0);
+  const prevWeek = useRef(thisWeek);
+  useEffect(() => {
+    if (prevWeek.current === thisWeek) return;
+    // Hafta odağı "bu hafta"daysa yeni haftaya geçer; elle başka haftaya gidildiyse dokunulmaz
+    const was = prevWeek.current;
+    prevWeek.current = thisWeek;
+    setWeekStart((ws) => (ws === was ? thisWeek : ws));
+  }, [thisWeek]);
+  const layout = useMemo(() => buildLayout({ tasks, schema, focus, filters, showDone, query, weekStart, h }), [tasks, schema, focus, filters, showDone, query, weekStart, h]);
   const filterCount = filters.areas.length + filters.priorities.length + (showDone ? 1 : 0);
 
   /* Çekmece: kart verisini listeden canlı türet (optimistic güncellemeler yansısın) */
@@ -101,19 +118,18 @@ export default function App() {
     [create, play, pinned],
   );
 
-  /** Kart başka şeride bırakıldı: alanı ya da tarihi değişir; raptiye saplanır */
+  /**
+   * Kart başka şeride bırakıldı: alanı ya da tarihi değişir (dropPatch); raptiye saplanır.
+   * Bir şey değiştiyse true döner (değişmediyse pano kartı eski yerine geri yaylar).
+   */
   const dropCard = useCallback(
-    (t: Task, patch: TaskPatch) => {
-      const next: TaskPatch = { ...patch };
-      if ("area" in next && next.area === t.area) delete next.area;
-      if ("date" in next) {
-        if (next.date === t.date) delete next.date;
-        else if (next.date && t.dateEnd && t.dateEnd < next.date) next.dateEnd = null;
-      }
-      if (Object.keys(next).length === 0) return;
+    (t: Task, patch: TaskPatch): boolean => {
+      const next = dropPatch(t, patch);
+      if (!next) return false;
       play("pin");
       pinned();
       update.mutate({ id: t.id, patch: next });
+      return true;
     },
     [update, play, pinned],
   );
@@ -173,6 +189,7 @@ export default function App() {
       } else if (k === "t") {
         e.preventDefault();
         changeFocus("week");
+        setFilterOpen(false);
         setDateOpen(true);
       } else {
         const def = FOCUS_DEFS.find((f) => f.key === e.key);
@@ -195,9 +212,7 @@ export default function App() {
   const active = filtersActive(filters, showDone) || Boolean(query.trim());
   const focusLabel = FOCUS_DEFS.find((f) => f.id === focus)!.label;
   const note =
-    tasksQ.data && layout.hidden > 0 && (focus !== "areas" || active)
-      ? `${focus !== "areas" ? `${focusLabel} odağı · ` : ""}${plural(layout.hidden, "kart")} odak dışında`
-      : null;
+    tasksQ.data && layout.hidden > 0 ? `${focus !== "areas" || active ? `${focusLabel} odağı · ` : ""}${plural(layout.hidden, "kart")} odak dışında` : null;
   const empty = !tasksQ.data
     ? null
     : layout.shown > 0
@@ -216,13 +231,21 @@ export default function App() {
     weekStart,
     onWeek: setWeekStart,
     dateOpen,
-    onDateToggle: () => setDateOpen((o) => !o),
+    onDateToggle: () => {
+      setFilterOpen(false);
+      setDateOpen((o) => !o);
+    },
   };
+
+  /* Odak değişince pano başa kayar; Hafta'da takvimde seçilen güne, yoksa (bu haftaysa) bugüne */
+  const anchor =
+    focus !== "week" ? null : pickedDay && startOfWeek(pickedDay) === weekStart ? `day:${pickedDay}` : thisWeek === weekStart ? `day:${t0}` : null;
 
   return (
     // Tüm Motion geçişleri varsayılan yayla; "hareketi azalt" açıksa dönüşümler anında
     <MotionConfig reducedMotion="user" transition={SPRING}>
-      <div className="app" data-focus={focus} data-note={note ? "" : undefined}>
+      {/* Ayarlar çekmecesi açıkken (aria-modal) arka plan etkileşimsiz: odak ve ekran okuyucu çekmecede kalır */}
+      <div className="app" data-focus={focus} data-note={note ? "" : undefined} inert={settingsOpen || undefined}>
         <TopBar
           pinPulse={pinPulse}
           syncedAt={meta.data?.lastSyncAt ?? tasksQ.data?.syncedAt ?? null}
@@ -244,7 +267,10 @@ export default function App() {
               searchRef={searchRef}
               filterCount={filterCount}
               filterOpen={filterOpen}
-              onFilterToggle={() => setFilterOpen((o) => !o)}
+              onFilterToggle={() => {
+                setDateOpen(false);
+                setFilterOpen((o) => !o);
+              }}
               filterBtnRef={filterBtnRef}
               dateBtnRef={dateBtnRef}
               onNew={() => newCard()}
@@ -266,7 +292,10 @@ export default function App() {
               onClose={() => setDateOpen(false)}
               anchorRefs={[dateBtnRef, dateBtnRef2]}
               weekStart={weekStart}
-              onPick={(iso) => setWeekStart(startOfWeek(iso))}
+              onPick={(iso) => {
+                setPickedDay(iso);
+                setWeekStart(startOfWeek(iso));
+              }}
               tasks={applyFilters(tasks, { filters, showDone, query })}
               schema={schema}
             />
@@ -308,10 +337,12 @@ export default function App() {
         ) : (
           <Board
             lanes={layout.lanes}
+            tasks={tasks}
             schema={schema}
             showNotes={showNotes && focus === "areas"}
             empty={empty}
-            focusKey={focus}
+            focusKey={focus === "week" ? `week:${weekStart}` : focus}
+            anchor={anchor}
             onOpen={openTask}
             onToggleDone={toggleDone}
             onDrop={dropCard}

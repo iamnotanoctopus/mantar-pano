@@ -23,15 +23,25 @@ export const LOGO = {
   collar: { x: 27, y: 53.5, width: 10, height: 3, rx: 1.5 },
 };
 
+interface PinPaint {
+  /** "none": yalnızca kontur (ör. Midnight raptiyesinin iç halkası) */
+  fill: PinFill | "none";
+  stroke?: PinFill;
+  strokeWidth?: number;
+  opacity?: number;
+}
 export type PinPart =
-  | { el: "path"; d: string; fill: PinFill; opacity?: number }
-  | { el: "circle"; cx: number; cy: number; r: number; fill: PinFill; opacity?: number }
-  | { el: "rect"; x: number; y: number; width: number; height: number; rx?: number; fill: PinFill; opacity?: number };
+  | ({ el: "path"; d: string } & PinPaint)
+  | ({ el: "circle"; cx: number; cy: number; r: number } & PinPaint)
+  | ({ el: "rect"; x: number; y: number; width: number; height: number; rx?: number } & PinPaint);
 
 /** Raptiye renkleri token adıdır: CSS'te var(--raptiye-…) */
 export type PinFill = "sapka" | "benek" | "igne";
 
-/** Kart raptiyeleri: viewBox 0 0 22 30; temaya (ya da seçilen raptiye stiline) göre dört biçim */
+/**
+ * Kart raptiyeleri: viewBox 0 0 22 30; temaya (ya da seçilen raptiye stiline) göre dört biçim.
+ * İğnenin yalnızca başın altındaki kısa ucu çizilir (gerisi kâğıda saplı; başlığın üstüne inmez).
+ */
 export const PINS: Record<PinShape, PinPart[]> = {
   amanita: [
     { el: "path", d: "M2 11C2 5 6 2 11 2s9 3 9 9c0 1.5-1 2-2 2H4c-1 0-2-.5-2-2z", fill: "sapka" },
@@ -39,23 +49,23 @@ export const PINS: Record<PinShape, PinPart[]> = {
     { el: "circle", cx: 13, cy: 5, r: 1.2, fill: "benek" },
     { el: "circle", cx: 16, cy: 9, r: 1.5, fill: "benek" },
     { el: "path", d: "M8 13h6l-.7 5H8.7z", fill: "benek" },
-    { el: "path", d: "M10.4 18h1.2l-.4 11h-.4z", fill: "igne" },
+    { el: "path", d: "M10.4 18h1.2l-.3 3h-.6z", fill: "igne" },
   ],
   classic: [
     { el: "circle", cx: 11, cy: 9, r: 7.5, fill: "sapka" },
     { el: "circle", cx: 8.5, cy: 6.5, r: 2.2, fill: "benek", opacity: 0.8 },
-    { el: "path", d: "M10.4 16h1.2l-.4 13h-.4z", fill: "igne" },
+    { el: "path", d: "M10.4 16h1.2l-.3 5h-.6z", fill: "igne" },
   ],
   glass: [
     { el: "rect", x: 5, y: 3, width: 12, height: 7, rx: 2, fill: "sapka" },
     { el: "rect", x: 7, y: 10, width: 8, height: 3, fill: "igne" },
     { el: "rect", x: 6.5, y: 4.3, width: 3, height: 1.2, rx: 0.6, fill: "benek", opacity: 0.9 },
-    { el: "path", d: "M10.5 13h1l-.3 16h-.4z", fill: "igne" },
+    { el: "path", d: "M10.5 13h1l-.2 8h-.6z", fill: "igne" },
   ],
   midnight: [
     { el: "circle", cx: 11, cy: 9, r: 7, fill: "sapka" },
-    { el: "circle", cx: 11, cy: 9, r: 3, fill: "benek", opacity: 0.55 },
-    { el: "path", d: "M10.4 16h1.2l-.4 13h-.4z", fill: "igne" },
+    { el: "circle", cx: 11, cy: 9, r: 3.6, fill: "none", stroke: "benek", strokeWidth: 1.4, opacity: 0.75 },
+    { el: "path", d: "M10.4 16h1.2l-.3 5h-.6z", fill: "igne" },
   ],
 };
 

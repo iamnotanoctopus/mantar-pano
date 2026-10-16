@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { DEFAULT_SCHEMA, type Task } from "../../shared/types.ts";
-import { applyFilters, buildLayout, byArea, byToday, byWeek } from "../board/layouts.ts";
+import { applyFilters, buildLayout, byArea, byToday, byWeek, dropPatch } from "../board/layouts.ts";
 import { areaColor, slug } from "../lib/format.ts";
 
 const h = { today: "2026-10-16", weekAhead: "2026-10-23" }; // Cuma
@@ -65,6 +65,7 @@ assert.deepEqual(week[6].tasks.map((t) => t.title), ["Ajan işi"]);
 assert.equal(week[7].title, "Tarihsiz");
 assert.deepEqual(week[7].tasks.map((t) => t.title), ["Tarihsiz"]);
 assert.deepEqual(week[7].drop, { date: null, dateEnd: null });
+assert.deepEqual(week[7].add, { date: null }, "Tarihsiz'deki ayrıntılı taslak odak tarihini devralmaz");
 assert.deepEqual(week[3].drop, { date: "2026-10-15" });
 
 /* Süzgeç: alan ve öncelik çoklu seçim, arama */
@@ -81,10 +82,27 @@ assert.equal(buildLayout({ ...base, focus: "today" }).hidden, open - 4);
 assert.equal(buildLayout({ ...base, focus: "areas", query: "uzak" }).shown, 1, "arama uzak kartı bulur");
 assert.equal(buildLayout({ ...base, focus: "week" }).shown, 6);
 
+/* Gece yarısı: "bugün" dışarıdan verilir; ertesi gün Bugün şeridi ve hızlı ekleme yeni tarihi kullanır */
+const nextDay = { today: "2026-10-17", weekAhead: "2026-10-24" };
+const todayLane = buildLayout({ ...base, focus: "today", h: nextDay }).lanes[1];
+assert.deepEqual(todayLane.add, { date: "2026-10-17" });
+assert.deepEqual(todayLane.tasks.map((t) => t.title), ["Yarın"]);
+
+/* Bırakma: değişmeyen alan atılır; çok günlü kartın süresi korunur; Tarihsiz ikisini de siler */
+const span = task({ title: "Konferans", date: "2026-10-15", dateEnd: "2026-10-17" });
+assert.deepEqual(dropPatch(span, { date: "2026-10-12" }), { date: "2026-10-12", dateEnd: "2026-10-14" }, "3 gün sürer, geriye");
+assert.deepEqual(dropPatch(span, { date: "2026-10-18" }), { date: "2026-10-18", dateEnd: "2026-10-20" }, "3 gün sürer, ileriye");
+assert.deepEqual(dropPatch(span, { date: null, dateEnd: null }), { date: null, dateEnd: null });
+assert.equal(dropPatch(span, { date: "2026-10-15" }), null, "aynı gün → değişiklik yok");
+assert.equal(dropPatch(task({ date: null }), { date: null, dateEnd: null }), null, "zaten tarihsiz");
+assert.equal(dropPatch(task({ area: "Okul" }), { area: "Okul" }), null);
+assert.deepEqual(dropPatch(task({ area: "Okul", date: "2026-10-16" }), { area: "İş" }), { area: "İş" });
+assert.deepEqual(dropPatch(task({ date: "2026-10-16" }), { date: "2026-10-17" }), { date: "2026-10-17" }, "tek günlük kartın bitişi yok");
+
 /* Alan renkleri: tasarımın dört alanı token'dan, diğerleri Notion renginden */
 assert.equal(slug("Görünürlük"), "gorunurluk");
 assert.equal(slug("İş"), "is");
 assert.equal(areaColor("Kişisel", "pink"), "var(--alan-kisisel)");
 assert.equal(areaColor("Ajan", "purple"), "var(--c-purple)");
 
-console.log("✓ pano: Alanlar · Bugün · Hafta odakları, süzgeç ve odak dışı sayısı doğru");
+console.log("✓ pano: Alanlar · Bugün · Hafta odakları, süzgeç, odak dışı sayısı ve bırakma kuralı doğru");

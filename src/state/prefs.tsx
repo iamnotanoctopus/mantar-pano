@@ -26,7 +26,9 @@ const Ctx = createContext<PrefsCtx | null>(null);
 
 function load(): Prefs {
   // claude.ai içinde açıldıysa görüntüleyenin açık/koyu seçimi kök öğede hazır gelir; ilk tercihte devralınır.
-  const host = document.documentElement.dataset.theme;
+  // index.html'deki erken betik data-theme'i hemen kendi temasıyla değiştirdiği için asıl değeri data-host-theme'de saklar.
+  const root = document.documentElement;
+  const host = root.dataset.hostTheme ?? root.dataset.theme;
   try {
     const raw = localStorage.getItem(KEY);
     return migratePrefs(raw ? JSON.parse(raw) : null, host);

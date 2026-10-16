@@ -2,7 +2,9 @@ import { useEffect, useRef, type RefObject } from "react";
 import { motion } from "motion/react";
 import type { Focus } from "@/state/prefs";
 import { addDays, weekRangeLabel } from "@/lib/dates";
-import { IconBoard, IconCalendar, IconChevronLeft, IconChevronRight, IconFilter, IconPlus, IconSearch, IconSunrise, IconX } from "./icons";
+import { DATE_POPOVER_ID } from "./DatePopover";
+import { FILTER_MENU_ID } from "./FilterMenu";
+import { IconBoard, IconCalendar, IconChevronDown, IconChevronLeft, IconChevronRight, IconFilter, IconPlus, IconSearch, IconSunrise, IconX } from "./icons";
 import "./Capsule.css";
 
 export const FOCUS_DEFS: { id: Focus; label: string; key: string; Icon: typeof IconBoard }[] = [
@@ -73,12 +75,14 @@ export function Capsule(p: Props) {
         className="capsule__btn capsule__btn--filter"
         aria-haspopup="dialog"
         aria-expanded={p.filterOpen}
+        aria-controls={p.filterOpen ? FILTER_MENU_ID : undefined}
         aria-label={p.filterCount ? `Süz (${p.filterCount} süzgeç açık)` : "Süz"}
         onClick={p.onFilterToggle}
       >
         <IconFilter width={17} height={17} />
         <span className="capsule__label">Süz</span>
         {p.filterCount > 0 && <span className="capsule__badge">{p.filterCount}</span>}
+        <IconChevronDown className="capsule__caret" width={13} height={13} strokeWidth={2.2} />
       </button>
 
       <div ref={searchWrap} className={`capsule__search ${p.searchOpen || p.query ? "is-open" : ""}`}>
@@ -152,6 +156,7 @@ export function WeekNav({
         className="weeknav__date"
         aria-haspopup="dialog"
         aria-expanded={dateOpen}
+        aria-controls={dateOpen ? DATE_POPOVER_ID : undefined}
         title="Takvimden hafta seç (T)"
         onClick={onDateToggle}
       >

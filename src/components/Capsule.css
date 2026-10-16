@@ -77,6 +77,15 @@
 .capsule__btn--filter[aria-expanded="true"] {
   background: color-mix(in srgb, var(--kapsul-murekkep) 9%, transparent);
 }
+/* "Süz ▾": açılır menü işareti; menü açıkken döner */
+.capsule__caret {
+  margin-left: -2px;
+  opacity: 0.7;
+  transition: rotate 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.capsule__btn--filter[aria-expanded="true"] .capsule__caret {
+  rotate: 180deg;
+}
 .capsule__badge {
   min-width: 18px;
   height: 18px;
@@ -180,7 +189,6 @@
     min-width: 50px;
     padding: 0 12px;
     justify-content: center;
-    font-size: 12px;
   }
   .capsule__seg-icon {
     display: block;
@@ -191,6 +199,9 @@
   }
   .capsule__sep {
     margin: 0 3px;
+  }
+  .capsule__caret {
+    display: none;
   }
   .capsule__btn,
   .capsule__btn--new {
@@ -215,5 +226,13 @@
   .weeknav__step,
   .weeknav__date {
     height: 36px;
+  }
+}
+
+/* Hareketi azalt: arama alanı ve menü işareti anında açılır */
+@media (prefers-reduced-motion: reduce) {
+  .capsule__input,
+  .capsule__caret {
+    transition: none;
   }
 }

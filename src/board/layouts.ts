@@ -7,7 +7,7 @@
  * React'tan bağımsızdır; src/test/layouts.test.ts ile sınanır.
  */
 import { DEFAULT_SCHEMA, type Schema, type Task, type TaskPatch } from "@shared/types";
-import { addDays, dayMonth, startOfWeek, weekdayShort } from "@/lib/dates";
+import { addDays, dayMonth, diffDays, startOfWeek, weekdayShort } from "@/lib/dates";
 import { areaColor } from "@/lib/format";
 import { byDate, byPriorityThenDate, horizon, isDone, matchesSearch, type Horizon } from "@/lib/views";
 import type { Filters, Focus } from "@/state/prefsModel";
@@ -128,8 +128,25 @@ export function byWeek(tasks: Task[], schema: Schema, weekStart: string, h: Hori
     };
   });
   const undated = tasks.filter((t) => t.date === null).sort(cmp);
-  lanes.push({ id: "day:none", title: "Tarihsiz", color: "var(--murekkep-3)", tasks: undated, totalMinutes: minutes(undated), drop: { date: null, dateEnd: null }, add: {}, empty: "Tarihsiz kart yok" });
+  lanes.push({ id: "day:none", title: "Tarihsiz", color: "var(--murekkep-3)", tasks: undated, totalMinutes: minutes(undated), drop: { date: null, dateEnd: null }, add: { date: null }, empty: "Tarihsiz kart yok" });
   return lanes;
+}
+
+/**
+ * Başka şeride bırakılan karta uygulanacak değişiklik (şeridin `drop`'undan). Değişmeyen alanlar atılır;
+ * çok günlü kart günler arasında taşınınca bitişi de aynı kadar kayar (süre korunur), Tarihsiz'e inince ikisi silinir.
+ * Hiçbir şey değişmiyorsa null.
+ */
+export function dropPatch(t: Task, drop: TaskPatch): TaskPatch | null {
+  const next: TaskPatch = { ...drop };
+  if ("area" in next && next.area === t.area) delete next.area;
+  if ("date" in next) {
+    if (next.date === t.date) delete next.date;
+    else if (next.date && t.date && t.dateEnd) next.dateEnd = addDays(t.dateEnd, diffDays(next.date, t.date));
+    else if (next.date && t.dateEnd && t.dateEnd < next.date) next.dateEnd = null;
+  }
+  if ("dateEnd" in next && next.dateEnd === t.dateEnd) delete next.dateEnd;
+  return Object.keys(next).length ? next : null;
 }
 
 /** Odak + süzgeç → şeritler ve "odak dışında" sayısı */

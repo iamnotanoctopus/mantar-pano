@@ -88,9 +88,24 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app.is-nudging,
-  .dock.is-nudging {
+  .app.is-nudging {
     animation: mp-nudge-flash 620ms ease-out both;
+  }
+  /* Yuvanın kendisi köşeli bir kutudur: parlama yuvarlak kapsülün çevresinde olsun */
+  .dock.is-nudging {
+    animation: none;
+  }
+  .dock.is-nudging > .capsule {
+    animation: mp-nudge-ring 620ms ease-out both;
+  }
+  @keyframes mp-nudge-ring {
+    0%,
+    100% {
+      box-shadow: var(--golge-kapsul), 0 0 0 0 var(--vurgu);
+    }
+    30% {
+      box-shadow: var(--golge-kapsul), 0 0 0 4px var(--vurgu);
+    }
   }
   @keyframes mp-nudge-flash {
     0% {

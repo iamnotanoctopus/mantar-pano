@@ -56,6 +56,13 @@
   --accent-2: var(--vurgu-2);
   --accent-ink: var(--vurgu-murekkep);
   --accent-soft: var(--vurgu-yumusak);
+  /*
+   * Türetilmiş erişilebilirlik renkleri (tokens.json'daki değerlerden):
+   *  - vurgu-metin: vurgu rengindeki küçük metin (bağlantı düğmeleri) her temada ≥ 4.5:1 olsun diye mürekkeple koyulaşır
+   *  - odak-renk: odak halkası opak; odak-halkasi token'ı yarı saydam olduğu için pano yüzeyinde 3:1'in altında kalıyordu
+   */
+  --vurgu-metin: color-mix(in srgb, var(--vurgu) 80%, var(--murekkep));
+  --odak-renk: color-mix(in srgb, var(--vurgu) 60%, var(--murekkep));
   --danger: var(--tehlike);
   --danger-soft: color-mix(in srgb, var(--tehlike) 12%, transparent);
   --success: var(--basari);
@@ -99,7 +106,6 @@
   --board-inset: none;
 
   --header-h: 64px;
-  --nav-h: 64px;
   --gutter: 20px;
 
   /* CSS geçişleri için (yay fiziği Motion'da; bkz. src/lib/physics.ts) */

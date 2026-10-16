@@ -26,6 +26,14 @@ kullanmayan **sentezlenmiş ses efektleri** ile gelir.
   <img src="docs/screenshots/cupertino-glass-phone.jpg" alt="Telefon · Cupertino Glass" width="24%">
   <img src="docs/screenshots/midnight-wood-phone.jpg" alt="Telefon · Midnight Wood" width="24%">
 </p>
+<p>
+  <img src="docs/screenshots/odak-bugun.jpg" alt="Bugün odağı — Gecikenler · Bugün · Yarın" width="49%">
+  <img src="docs/screenshots/odak-hafta.jpg" alt="Hafta odağı — Pzt … Paz ve Tarihsiz" width="49%">
+</p>
+<p>
+  <img src="docs/screenshots/ayarlar.jpg" alt="Tema ve ayarlar çekmecesi" width="73%">
+  <img src="docs/screenshots/suz-telefon.jpg" alt="Telefon · Süz alt sayfası" width="24%">
+</p>
 
 > Canlı demo: **https://iamnotanoctopus.github.io/mantar-pano/** (local-first; kartlar tarayıcında kalır)
 
@@ -146,7 +154,7 @@ npm run build:static    # local-first statik derleme (BASE_PATH=/repo/ ile alt y
 npm run build:artifact  # claude.ai artifact (tek dosya, mcp modu; Google Fonts'tan yalnızca Fraunces)
 npm run build:themes    # design/tokens.json → src/styles/themes/*.css
 npm run build:icons     # Amanita raptiye logosu → public/pin.svg, pin-180.png, pin-512.png (Playwright)
-npm run build:screenshots  # build:static sonrası → docs/screenshots/*.jpg (4 tema × masaüstü/telefon)
+npm run build:screenshots  # build:static sonrası → docs/screenshots/*.jpg (4 tema × masaüstü/telefon, odaklar, ayarlar, Süz)
 npm test                # Notion eşleme, tercih göçü ve pano odakları testleri
 npm run typecheck
 ```

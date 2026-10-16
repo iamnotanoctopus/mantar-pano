@@ -2,6 +2,7 @@ import { memo, type MouseEvent } from "react";
 import { STATUS_DOING, STATUS_DONE, type Schema, type Task } from "@shared/types";
 import { dayLabel } from "@/lib/dates";
 import { areaColor, formatDuration } from "@/lib/format";
+import { stableKey } from "@/lib/stableKey";
 import { IconCheck } from "./icons";
 import { Pin } from "./Pin";
 import "./TaskCard.css";
@@ -49,7 +50,7 @@ export const TaskCard = memo(function TaskCard({ task, schema, showNote = true, 
   return (
     <article
       className={cls}
-      style={{ "--tilt": `${tilt(task.id)}deg`, "--area-c": areaColor(task.area, area?.color) } as React.CSSProperties}
+      style={{ "--tilt": `${tilt(stableKey(task.id))}deg`, "--area-c": areaColor(task.area, area?.color) } as React.CSSProperties}
       onClick={() => onOpen(task)}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;

@@ -3,6 +3,7 @@ import { useMeta, useRefresh } from "@/hooks/useTasks";
 import { relativeTime } from "@/lib/dates";
 import { plural } from "@/lib/format";
 import { Logo } from "./Logo";
+import { SETTINGS_ID } from "./SettingsDrawer";
 import { IconSettings } from "./icons";
 import "./TopBar.css";
 
@@ -36,6 +37,7 @@ export function TopBar({ pinPulse, syncedAt, fetching, error, count, settingsOpe
           aria-label="Tema ve ayarlar"
           aria-haspopup="dialog"
           aria-expanded={settingsOpen}
+          aria-controls={settingsOpen ? SETTINGS_ID : undefined}
           onClick={onSettings}
         >
           <IconSettings width={18} height={18} />

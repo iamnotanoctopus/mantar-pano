@@ -2,12 +2,17 @@
   position: relative;
   z-index: 20;
   height: 92px;
-  display: flex;
+  /* Üç sütun: logo · kapsül yuvası · senkron + dişli. Sütunlar üst üste binmez; kapsül her zaman ortada */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "brand dock end";
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  column-gap: 16px;
 }
 .topbar__brand {
+  grid-area: brand;
+  justify-self: start;
+  min-width: 0;
   color: var(--murekkep);
   text-decoration: none;
   border-radius: var(--radyus-cip);
@@ -16,6 +21,9 @@
   text-decoration: none;
 }
 .topbar__end {
+  grid-area: end;
+  justify-self: end;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -42,6 +50,7 @@
 }
 
 .sync {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -55,7 +64,13 @@
 }
 .sync__label,
 .sync__short {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sync__dot {
+  flex: none;
 }
 .sync__short {
   display: none;
@@ -85,12 +100,12 @@
   }
 }
 
-/* Ortadaki yuva: kapsül + odak notu (telefonda alta iner) */
+/* Ortadaki yuva: kapsül + odak notu (telefonda alta iner). Süz ve takvim bu kutuya göre konumlanır. */
 .dock {
-  position: absolute;
-  left: 50%;
-  top: 16px;
-  transform: translateX(-50%);
+  grid-area: dock;
+  position: relative;
+  align-self: start;
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -108,7 +123,7 @@
   white-space: nowrap;
 }
 .dock__note button {
-  color: var(--vurgu);
+  color: var(--vurgu-metin);
   font-weight: 600;
   margin-left: 4px;
 }
@@ -116,23 +131,49 @@
   display: none;
 }
 
-@media (max-width: 1080px) {
-  .sync__label {
+/* Dar masaüstü: senkron etiketi noktaya iner; Hafta'da ya da arama açıkken kapsül genişler, etiket o zaman da çekilir */
+@media (max-width: 1280px) {
+  .app[data-focus="week"] .sync__label,
+  .topbar:has(.capsule__search.is-open) .sync__label {
     display: none;
+  }
+}
+/* Hafta + arama en geniş kapsüldür: dar masaüstünde düğme etiketleri ikona, logo işarete iner (üst üste binmesin) */
+@media (min-width: 1101px) and (max-width: 1300px) {
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__label,
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__caret,
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .logo__word {
+    display: none;
+  }
+}
+/* Tablet: kapsül yuvası ikinci satıra iner; logo ve senkron üstte kalır, hiçbiri üst üste binmez */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .topbar {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand end" "dock dock";
+    row-gap: 6px;
+    padding: 12px 0 4px;
+  }
+  .dock {
+    justify-self: center;
+    margin-top: 0;
   }
 }
 
 @media (max-width: 760px) {
   .topbar {
     height: 48px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand end";
+  }
+  .topbar__gear {
+    width: 44px;
+    height: 44px;
   }
   .topbar .logo__mark {
     width: 22px;
     height: 28px;
-  }
-  .topbar .logo__word {
-    font-size: 19px;
-    line-height: 24px;
   }
   .sync__short {
     display: inline;

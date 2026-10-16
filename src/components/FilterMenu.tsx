@@ -1,8 +1,10 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Schema } from "@shared/types";
 import { areaColor, colorVar, plural } from "@/lib/format";
 import type { Filters } from "@/state/prefs";
 import { useDismiss } from "@/hooks/useDismiss";
+import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { Switch } from "./Switch";
 import "./FilterMenu.css";
 
@@ -21,22 +23,42 @@ interface Props {
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-/** Süz ▾: Alan (çoklu), Öncelik (çoklu), Bitmişleri göster. Masaüstünde kapsülün altında açılır, telefonda alt sayfa. */
+export const FILTER_MENU_ID = "mp-suz";
+
+/**
+ * Süz ▾: Alan (çoklu), Öncelik (çoklu), Bitmişleri göster. Masaüstünde kapsülün altında açılır, telefonda alt sayfa;
+ * açılış ve kapanış varsayılan yayla (MotionConfig). Açılınca ilk etkin denetime, Esc ya da Uygula ile kapanınca
+ * Süz düğmesine odaklanır.
+ */
 export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilters, showDone, onShowDone, shown }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  useDismiss(open, ref, onClose, [anchorRef]);
+  const phone = useMediaQuery(PHONE);
+  useDismiss(open, ref, onClose, [anchorRef], () => anchorRef.current);
 
   useEffect(() => {
-    if (open) ref.current?.querySelector<HTMLElement>("button")?.focus();
+    if (open) ref.current?.querySelector<HTMLElement>("button:not(:disabled)")?.focus();
   }, [open]);
 
-  if (!open) return null;
   const any = filters.areas.length > 0 || filters.priorities.length > 0 || showDone;
+  const off = phone ? { y: "100%" } : { opacity: 0, y: -6, scale: 0.96 };
 
   return (
-    <>
-      <div className="sheet-scrim" aria-hidden onClick={onClose} />
-      <div ref={ref} className="filter" role="dialog" aria-label="Süz">
+    <AnimatePresence>
+      {open && (
+        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+      )}
+      {open && (
+      <motion.div
+        key="menu"
+        ref={ref}
+        id={FILTER_MENU_ID}
+        className="filter"
+        role="dialog"
+        aria-label="Süz"
+        initial={off}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={off}
+      >
         <i className="sheet-grip" aria-hidden />
         <div className="filter__head">
           <h2 className="filter__title">Süz</h2>
@@ -94,10 +116,18 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
           <Switch checked={showDone} onChange={onShowDone} label="Bitmişleri göster" />
         </div>
 
-        <button type="button" className="filter__apply" onClick={onClose}>
+        <button
+          type="button"
+          className="filter__apply"
+          onClick={() => {
+            onClose();
+            anchorRef.current?.focus();
+          }}
+        >
           Uygula · {plural(shown, "kart")}
         </button>
-      </div>
-    </>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
