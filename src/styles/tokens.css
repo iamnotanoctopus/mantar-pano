@@ -62,7 +62,7 @@
    *  - odak-renk: odak halkası opak; odak-halkasi token'ı yarı saydam olduğu için pano yüzeyinde 3:1'in altında kalıyordu
    */
   --vurgu-metin: color-mix(in srgb, var(--vurgu) 80%, var(--murekkep));
-  --odak-renk: color-mix(in srgb, var(--vurgu) 60%, var(--murekkep));
+  --odak-renk: color-mix(in srgb, var(--vurgu) 50%, var(--murekkep));
   --danger: var(--tehlike);
   --danger-soft: color-mix(in srgb, var(--tehlike) 12%, transparent);
   --success: var(--basari);

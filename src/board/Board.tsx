@@ -73,6 +73,8 @@ interface Landing {
   top: number;
   scale: number;
   rotate: number;
+  /** Kart tutulurken odaktaydı: eski kopya kalkınca odak yeni yerindeki karta geçer */
+  refocus: boolean;
 }
 
 /**
@@ -103,10 +105,8 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     (nx: number, ny: number, instant = false) => {
       if (reduce || instant) {
         goal.current = null;
-        x.stop();
-        y.stop();
-        x.set(nx);
-        y.set(ny);
+        x.jump(nx);
+        y.jump(ny);
         return;
       }
       goal.current = { x: nx, y: ny };
@@ -241,6 +241,8 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
   /* Geri dönen kart: tutulan kopya yerine uçarken asıl kart gizli kalır; kopya oturunca raptiyesi seker */
   const [returning, setReturning] = useState<string | null>(null);
   const [bounce, setBounce] = useState<string | null>(null);
+  /* Telefon: tutulurken ve bırakınca şerit hizalanana kadar scroll-snap kapalı (anında yeniden yapışma sıçratıyordu) */
+  const [free, setFree] = useState(false);
   const liftScale = useMotionValue(1);
   const liftRotate = useMotionValue(0);
   const dir = useRef(0);
@@ -289,15 +291,45 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
   };
   useEffect(() => stopEdgeLoop, []);
 
+  /*
+   * Telefonda bırakınca pano hedef şeride (yoksa en yakın şeride) yumuşakça hizalanır, yapışma ancak sonra döner;
+   * böylece snap'in anında yeniden devreye girmesi panoyu ve inen kartı sıçratmaz.
+   */
+  const settleScroll = (laneId?: string) => {
+    const vp = viewRef.current;
+    if (!vp || pan) {
+      setFree(false);
+      return;
+    }
+    const max = vp.scrollWidth - vp.clientWidth;
+    const lanesEls = [...vp.querySelectorAll<HTMLElement>(".board__lanes > .lane:not([data-motion-pop-id])")];
+    const stops = lanesEls.map((el) => ({ id: el.dataset.lane, left: clamp(el.offsetLeft - 16, 0, max) }));
+    const target = stops.find((s) => s.id === laneId) ?? stops.reduce((a, b) => (Math.abs(b.left - vp.scrollLeft) < Math.abs(a.left - vp.scrollLeft) ? b : a), stops[0]);
+    if (!target || Math.abs(target.left - vp.scrollLeft) < 2) {
+      setFree(false);
+      return;
+    }
+    let t = 0;
+    const done = () => {
+      vp.removeEventListener("scrollend", done);
+      window.clearTimeout(t);
+      setFree(false);
+    };
+    vp.addEventListener("scrollend", done);
+    t = window.setTimeout(done, 700); // scrollend desteklenmiyorsa
+    vp.scrollTo({ left: target.left, behavior: reduce ? "auto" : "smooth" });
+  };
+
   const onDragStart = (e: DragStartEvent) => {
     setActive((e.active.data.current?.task as Task | undefined) ?? null);
+    setFree(true);
     setLanding(null);
     setReturning(null);
     setBounce(null);
     setDropMode("return");
     dir.current = 0;
-    liftScale.set(1);
-    liftRotate.set(0);
+    liftScale.jump(1);
+    liftRotate.jump(0);
     animate(liftScale, LIFT.scale, reduce ? INSTANT : SPRING);
     /* Kart kenarda beklerken de pano kaymaya devam etsin (işaretçi kıpırdamasa bile) */
     if (pan) {
@@ -351,11 +383,14 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     const r = e.active.rect.current.translated;
     if (!task || !lane?.drop || lane.tasks.some((t) => t.id === task.id) || !r || !onDrop(task, lane.drop)) {
       returnCard(task?.id ?? null);
+      settleScroll();
       return;
     }
     // Aynı işlem içinde: DragOverlay geri dönüş animasyonunu çalıştırmaz, kart yeni yerinde bırakıldığı noktadan iner
+    const refocus = Boolean((document.activeElement as HTMLElement | null)?.closest(`[data-card="${CSS.escape(task.id)}"]`));
     setDropMode("land");
-    setLanding({ id: task.id, lane: lane.id, left: r.left, top: r.top, scale: liftScale.get(), rotate: liftRotate.get() });
+    setLanding({ id: task.id, lane: lane.id, left: r.left, top: r.top, scale: liftScale.get(), rotate: liftRotate.get(), refocus });
+    settleScroll(lane.id);
   };
 
   /* Geri dönüş animasyonu hiç oynamazsa (kopya zaten yerindeyse) asıl kart gizli kalmasın */
@@ -409,7 +444,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
   };
 
   return (
-    <section id="pano" className={`board ${panning ? "is-panning" : ""} ${active ? "is-dragging" : ""}`} aria-label="Pano">
+    <section id="pano" className={`board ${panning ? "is-panning" : ""} ${free ? "is-free" : ""}`} aria-label="Pano">
       <DndContext
         sensors={sensors}
         collisionDetection={pointerWithin}
@@ -423,6 +458,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
           stopEdgeLoop();
           setActive(null);
           returnCard(String(e.active.id));
+          settleScroll();
         }}
       >
         <DroppableMeasure api={remeasure} />
@@ -669,12 +705,14 @@ function DraggableCard({
     const el = node.current;
     if (!landing || !el) return;
     const r = el.getBoundingClientRect();
-    x.set(landing.left - r.left);
-    y.set(landing.top - r.top);
-    lift.set(landing.scale);
-    rotate.set(landing.rotate);
+    // jump: iniş bırakıldığı yerde hızsız başlar (set'in sıçrama hızı yayı savururdu)
+    x.jump(landing.left - r.left);
+    y.jump(landing.top - r.top);
+    lift.jump(landing.scale);
+    rotate.jump(landing.rotate);
     const t = reduce ? INSTANT : SPRING;
     const anims = [animate(x, 0, t), animate(y, 0, t), animate(lift, 1, t), animate(rotate, 0, t)];
+    if (landing.refocus) el.querySelector<HTMLElement>(".card")?.focus({ preventScroll: true });
     return () => anims.forEach((a) => a.stop());
     // yalnızca yeni bir iniş başladığında
   }, [landing, reduce, x, y, lift, rotate]);
@@ -692,7 +730,7 @@ function DraggableCard({
       exit={{ opacity: 0, scale: 0.96, transition: t }}
       transition={{ ...t, opacity: mounted.current || hidden ? INSTANT : t }}
       className={`card-slot ${isDragging ? "is-ghost" : ""}`}
-      aria-hidden={hidden || undefined}
+      data-card={task.id}
     >
       <TaskCard task={task} schema={schema} showNote={showNote} onOpen={onOpen} onToggleDone={onToggleDone} pop={pop && !reduce} />
     </motion.div>

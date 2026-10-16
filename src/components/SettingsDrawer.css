@@ -125,7 +125,8 @@
 .theme-card__pin {
   position: absolute;
   left: calc(50% - 7px);
-  top: 6px;
+  /* kısa iğne ucu önizleme kâğıdına saplansın */
+  top: 9px;
   width: 14px;
   height: 19px;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
@@ -212,9 +213,10 @@
   }
 }
 
-/* Dokunma hedefi en az 44px: düğme görünüşte 32px kalır, çevresindeki görünmez alan da dokunmayı alır */
+/* Dokunma hedefi en az 44px: düğme görünüşte 32px kalır, çevresindeki görünmez alan da dokunmayı alır
+   (inset dolgu kutusuna göre: 30px iç + 2 × 7px = 44px) */
 .settings__close::after {
   content: "";
   position: absolute;
-  inset: -6px;
+  inset: -7px;
 }

@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { useLayoutEffect } from "react";
+import { animate, motion, useMotionValue } from "motion/react";
 import { PINS, type PinFill } from "@/lib/brand";
 import { LIFT, PIN_POP, PIN_SPRING } from "@/lib/physics";
 import type { PinShape } from "@/lib/themes";
@@ -15,19 +16,22 @@ const FILL: Record<PinFill | "none", string> = { sapka: "var(--raptiye-sapka)", 
 export function Pin({ shape, className, pop }: { shape?: PinShape; className?: string; pop?: boolean }) {
   const { resolvedPin } = usePrefs();
   const parts = PINS[shape ?? resolvedPin];
+  /*
+   * Sekme doğrudan MotionValue'larla oynatılır, `initial` ile değil: AnimatePresence initial={false} altında
+   * (ilk yüklemedeki kartlar) yeniden takılan bir öğenin giriş animasyonu Motion tarafından engellenir.
+   */
+  const scale = useMotionValue(1);
+  const y = useMotionValue(0);
+  useLayoutEffect(() => {
+    if (!pop) return;
+    // jump: değer hızsız başlar (set bir sıçrama hızı bırakır, yay 1.2'nin üstüne taşardı)
+    scale.jump(PIN_POP);
+    y.jump(LIFT.pinRise);
+    const a = [animate(scale, 1, PIN_SPRING), animate(y, 0, PIN_SPRING)];
+    return () => a.forEach((x) => x.stop());
+  }, [pop, scale, y]);
   return (
-    <motion.svg
-      key={pop ? "pop" : "rest"}
-      className={className ?? "pin"}
-      viewBox="0 0 22 30"
-      width="22"
-      height="30"
-      aria-hidden
-      focusable="false"
-      initial={pop ? { scale: PIN_POP, y: LIFT.pinRise } : false}
-      animate={{ scale: 1, y: 0 }}
-      transition={PIN_SPRING}
-    >
+    <motion.svg className={className ?? "pin"} viewBox="0 0 22 30" width="22" height="30" aria-hidden focusable="false" style={{ scale, y }}>
       {parts.map((p, i) => {
         const common = { fill: FILL[p.fill], stroke: p.stroke && FILL[p.stroke], strokeWidth: p.strokeWidth, opacity: p.opacity };
         if (p.el === "path") return <path key={i} d={p.d} {...common} />;

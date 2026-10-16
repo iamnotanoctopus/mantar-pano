@@ -22,13 +22,16 @@
 }
 .topbar__end {
   grid-area: end;
-  justify-self: end;
+  /* Sütunu doldurur ve içeriğini sağa yaslar: dar kalınca senkron etiketi üç noktayla kısalır, kapsülün altına girmez */
+  justify-self: stretch;
+  justify-content: flex-end;
   min-width: 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 10px;
 }
 .topbar__gear {
+  flex: none;
   width: 40px;
   height: 40px;
   border-radius: var(--radyus-kapsul);
@@ -51,6 +54,7 @@
 
 .sync {
   min-width: 0;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -132,14 +136,14 @@
 }
 
 /* Dar masaüstü: senkron etiketi noktaya iner; Hafta'da ya da arama açıkken kapsül genişler, etiket o zaman da çekilir */
-@media (max-width: 1280px) {
+@media (min-width: 1121px) and (max-width: 1280px) {
   .app[data-focus="week"] .sync__label,
   .topbar:has(.capsule__search.is-open) .sync__label {
     display: none;
   }
 }
 /* Hafta + arama en geniş kapsüldür: dar masaüstünde düğme etiketleri ikona, logo işarete iner (üst üste binmesin) */
-@media (min-width: 1101px) and (max-width: 1300px) {
+@media (min-width: 1121px) and (max-width: 1300px) {
   .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__label,
   .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__caret,
   .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .logo__word {
@@ -147,7 +151,7 @@
   }
 }
 /* Tablet: kapsül yuvası ikinci satıra iner; logo ve senkron üstte kalır, hiçbiri üst üste binmez */
-@media (min-width: 761px) and (max-width: 1100px) {
+@media (min-width: 761px) and (max-width: 1120px) {
   .topbar {
     height: auto;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -158,6 +162,17 @@
   .dock {
     justify-self: center;
     margin-top: 0;
+  }
+  /* Hafta + arama satıra sığsın: düğme etiketleri ikona, bölümler (seçili olan hariç) ikona iner, arama daralır */
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) :is(.capsule__label, .capsule__caret),
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__seg:not([aria-pressed="true"]) .capsule__seg-label {
+    display: none;
+  }
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__seg-icon {
+    display: block;
+  }
+  .app[data-focus="week"] .topbar:has(.capsule__search.is-open) .capsule__search.is-open .capsule__input {
+    width: 120px;
   }
 }
 
@@ -170,6 +185,10 @@
   .topbar__gear {
     width: 44px;
     height: 44px;
+  }
+  /* Telefonda yalnızca kısa etiket (kart sayısı) */
+  .sync__label {
+    display: none;
   }
   .topbar .logo__mark {
     width: 22px;

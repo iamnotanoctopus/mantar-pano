@@ -48,6 +48,8 @@ export default function App() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(today()));
   /* Takvimde seçilen gün: Hafta odağında pano o günün şeridine kayar */
   const [pickedDay, setPickedDay] = useState<string | null>(null);
+  /* Aynı gün yeniden seçilse de pano o şeride yeniden kaysın */
+  const [pickSeq, setPickSeq] = useState(0);
   const [drawer, setDrawer] = useState<DrawerRef | null>(null);
   /* Kart eklendi / iğnelendi: logo seker */
   const [pinPulse, setPinPulse] = useState(0);
@@ -294,6 +296,7 @@ export default function App() {
               weekStart={weekStart}
               onPick={(iso) => {
                 setPickedDay(iso);
+                setPickSeq((n) => n + 1);
                 setWeekStart(startOfWeek(iso));
               }}
               tasks={applyFilters(tasks, { filters, showDone, query })}
@@ -341,7 +344,7 @@ export default function App() {
             schema={schema}
             showNotes={showNotes && focus === "areas"}
             empty={empty}
-            focusKey={focus === "week" ? `week:${weekStart}` : focus}
+            focusKey={focus === "week" ? `week:${weekStart}:${pickSeq}` : focus}
             anchor={anchor}
             onOpen={openTask}
             onToggleDone={toggleDone}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { INSTANT } from "@/lib/physics";
 import type { Schema } from "@shared/types";
 import { areaColor, colorVar, plural } from "@/lib/format";
 import type { Filters } from "@/state/prefs";
@@ -33,6 +34,8 @@ export const FILTER_MENU_ID = "mp-suz";
 export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilters, showDone, onShowDone, shown }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const phone = useMediaQuery(PHONE);
+  // Hareketi azalt: açılış/kapanış anında (MotionConfig yalnızca transform'ları kapatır, saydamlık yayı kalırdı)
+  const instant = useReducedMotion() ? INSTANT : undefined;
   useDismiss(open, ref, onClose, [anchorRef], () => anchorRef.current);
 
   useEffect(() => {
@@ -45,7 +48,7 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
   return (
     <AnimatePresence>
       {open && (
-        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={instant} />
       )}
       {open && (
       <motion.div
@@ -58,6 +61,7 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
         initial={off}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={off}
+        transition={instant}
       >
         <i className="sheet-grip" aria-hidden />
         <div className="filter__head">

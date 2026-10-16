@@ -188,8 +188,8 @@
   .board__view::-webkit-scrollbar {
     display: none;
   }
-  /* Kart tutulurken şerit şerit yapışma kapalı: kenar kaydırması komşu şeride yumuşakça varsın */
-  .board.is-dragging .board__view {
+  /* Kart tutulurken (ve bırakınca hedef şeride yumuşakça hizalanana kadar) yapışma kapalı */
+  .board.is-free .board__view {
     scroll-snap-type: none;
   }
   .board__lanes {
@@ -211,6 +211,10 @@
   }
   .lane::-webkit-scrollbar {
     display: none;
+  }
+  /* popLayout ile sönmekte olan şerit yapışma hedefi olmasın: kaldırılınca kaydırma yanlış şeride sıçrıyordu */
+  .lane[data-motion-pop-id] {
+    scroll-snap-align: none;
   }
   .lane__cards {
     gap: 12px;

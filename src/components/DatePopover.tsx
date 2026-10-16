@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { INSTANT } from "@/lib/physics";
 import type { Schema, Task } from "@shared/types";
 import { addDays, fromISODate, monthYear, startOfWeek, toISODate, today } from "@/lib/dates";
 import { areaColor } from "@/lib/format";
@@ -45,6 +46,8 @@ export const DATE_POPOVER_ID = "mp-takvim";
 export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, tasks, schema }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const phone = useMediaQuery(PHONE);
+  // Hareketi azalt: açılış/kapanış anında (MotionConfig yalnızca transform'ları kapatır, saydamlık yayı kalırdı)
+  const instant = useReducedMotion() ? INSTANT : undefined;
   const back = () => firstVisible(anchorRefs);
   useDismiss(open, ref, onClose, anchorRefs, back);
   const t0 = today();
@@ -59,8 +62,8 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
     if (!open) return;
     const d = fromISODate(weekStart);
     setCursor({ y: d.getFullYear(), m: d.getMonth() });
-    // açılınca seçili haftanın ilk gününe odaklan
-    requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>(".cal__cell.is-week")?.focus());
+    // açılınca seçili haftanın ilk gününe odaklan (ızgara önce o aya dönsün diye odak efektiyle, çizimden sonra)
+    setFocusDay(weekStart);
   }, [open, weekStart]);
 
   useEffect(() => {
@@ -98,7 +101,7 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
   return (
     <AnimatePresence>
       {open && (
-        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={instant} />
       )}
       {open && (
       <motion.div
@@ -111,6 +114,7 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
         initial={off}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={off}
+        transition={instant}
       >
         <i className="sheet-grip" aria-hidden />
         <div className="cal__head">
