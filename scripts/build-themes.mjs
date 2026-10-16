@@ -3,7 +3,8 @@
  *
  * Tasarım sisteminin (Mantar Pano v2) tek kaynağı design/tokens.json'dur. Bu betik:
  *   - her tema için `:root[data-theme="<id>"]` bloğu yazar (renk + gölge + yapı token'ları);
- *     ilk tema (amanita) aynı zamanda `:root` varsayılanıdır,
+ *     ilk tema (amanita) aynı zamanda `:root` varsayılanıdır; `[data-theme-scope="<id>"]` aynı
+ *     token'ları tek bir öğeye uygular (ayarlardaki tema önizlemeleri),
  *   - index.css'e temalar arası ortak token'ları (boşluk, köşe, yazı, fizik) ve tema dosyalarını koyar.
  * Token adları olduğu gibi CSS değişkeni olur: `kart-yuzey` → `--kart-yuzey`.
  *   Çalıştır: npm run build:themes
@@ -24,7 +25,8 @@ for (const { id, name } of themes) {
   const lines = perTheme.map((tok) =>
     tok.name === "renk-semasi" ? `  color-scheme: ${valueOf(tok, id)};` : `  --${tok.name}: ${valueOf(tok, id)};`,
   );
-  const selector = id === first ? `:root,\n:root[data-theme="${id}"]` : `:root[data-theme="${id}"]`;
+  const scoped = `[data-theme-scope="${id}"]`;
+  const selector = id === first ? `:root,\n:root[data-theme="${id}"],\n${scoped}` : `:root[data-theme="${id}"],\n${scoped}`;
   writeFileSync(new URL(`${id}.css`, outDir), `${header(name)}\n${selector} {\n${lines.join("\n")}\n}\n`);
 }
 

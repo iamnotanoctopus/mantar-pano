@@ -1,0 +1,27 @@
+.segp {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radyus-kapsul);
+  background: var(--vurgu-yumusak);
+  font: var(--yazi-meta);
+  font-weight: 600;
+}
+.segp__opt {
+  position: relative;
+  padding: 4px 10px;
+  border-radius: var(--radyus-kapsul);
+  color: var(--murekkep-2);
+  isolation: isolate;
+}
+.segp__opt[aria-checked="true"] {
+  color: var(--kapsul-aktif-murekkep);
+}
+.segp__pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--kapsul-aktif);
+}

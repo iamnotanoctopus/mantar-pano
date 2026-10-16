@@ -14,8 +14,7 @@ export interface ThemeDef {
   short: string;
   hint: string;
   dark: boolean;
-  /** Tema seçicideki küçük önizleme: pano, kart, vurgu */
-  swatch: { board: string; card: string; accent: string };
+  /** Temanın varsayılan pano dokusu ve raptiye biçimi (ayarlardan ayrıca seçilebilir) */
   texture: TextureId;
   pin: PinShape;
 }
@@ -27,7 +26,6 @@ export const THEMES: ThemeDef[] = [
     short: "Amanita",
     hint: "Yosun alt tonlu mantar, krem parşömen, benekli mantar raptiye",
     dark: false,
-    swatch: { board: "#c6ae78", card: "#fbf4e3", accent: "#dc2626" },
     texture: "mantar",
     pin: "amanita",
   },
@@ -37,7 +35,6 @@ export const THEMES: ThemeDef[] = [
     short: "Klasik",
     hint: "Gerçekçi mantar, kırık beyaz kâğıt, kırmızı küre raptiye",
     dark: false,
-    swatch: { board: "#d9bb93", card: "#fffdf8", accent: "#2f4f80" },
     texture: "mantar",
     pin: "classic",
   },
@@ -47,7 +44,6 @@ export const THEMES: ThemeDef[] = [
     short: "Cupertino",
     hint: "Buzlu cam pano, yarı saydam kartlar, metalik raptiye",
     dark: false,
-    swatch: { board: "#e5e5ea", card: "#ffffff", accent: "#0066cc" },
     texture: "cam",
     pin: "glass",
   },
@@ -57,7 +53,6 @@ export const THEMES: ThemeDef[] = [
     short: "Midnight",
     hint: "Koyu ceviz, sıcak koyu gri kartlar, pastel raptiye",
     dark: true,
-    swatch: { board: "#2a1f17", card: "#322b26", accent: "#ffb454" },
     texture: "ahsap",
     pin: "midnight",
   },

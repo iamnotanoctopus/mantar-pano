@@ -107,6 +107,19 @@
   --dur: 160ms;
 }
 
+/* Pano dokusu (data-texture): renk tonu her zaman temanın pano-doku token'ından */
+:root[data-texture="ahsap"] {
+  --pano-desen:
+    repeating-linear-gradient(91deg, var(--pano-doku) 0 1px, transparent 1px 7px, color-mix(in srgb, var(--pano-doku) 55%, transparent) 7px 7.6px, transparent 7.6px 19px),
+    repeating-linear-gradient(89.4deg, transparent 0 46px, color-mix(in srgb, var(--pano-doku) 70%, transparent) 46px 48px, transparent 48px 113px);
+}
+:root[data-texture="cam"] {
+  --pano-desen: linear-gradient(160deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.05) 46%, rgba(255, 255, 255, 0.14));
+}
+:root[data-texture="duz"] {
+  --pano-desen: linear-gradient(transparent, transparent);
+}
+
 /* Koyu tema (Midnight Wood) için Notion renkleri */
 :root[data-theme="midnight-wood"] {
   --c-default: #a69b8e;

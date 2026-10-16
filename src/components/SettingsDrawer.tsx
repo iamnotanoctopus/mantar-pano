@@ -6,10 +6,13 @@ import { useMeta } from "@/hooks/useTasks";
 import { useDismiss } from "@/hooks/useDismiss";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { INSTANT, SPRING } from "@/lib/physics";
-import { THEMES } from "@/lib/themes";
+import { THEMES, themeDef } from "@/lib/themes";
+import type { PinPref, TexturePref } from "@/state/prefs";
 import { usePrefs } from "@/state/prefs";
 import { useToast } from "./Toast";
 import { Switch } from "./Switch";
+import { SegPicker } from "./SegPicker";
+import { Pin } from "./Pin";
 import { IconExternal, IconNudge, IconX } from "./icons";
 import "./SettingsDrawer.css";
 
@@ -41,6 +44,24 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
     const back = returnFocus.current;
     return () => back?.focus();
   }, [returnFocus]);
+
+  const def = themeDef(prefs.resolvedTheme);
+  const TEXTURE_NAMES: Record<string, string> = { mantar: "Mantar", ahsap: "Ahşap", cam: "Cam", duz: "Düz" };
+  const PIN_NAMES: Record<string, string> = { amanita: "Amanita", classic: "Klasik", glass: "Cam", midnight: "Pastel" };
+  const textures: { id: TexturePref; label: string; hint?: string }[] = [
+    { id: "auto", label: "Tema", hint: `Temanın dokusu (${TEXTURE_NAMES[def.texture]})` },
+    { id: "mantar", label: "Mantar" },
+    { id: "ahsap", label: "Ahşap" },
+    { id: "cam", label: "Cam" },
+    { id: "duz", label: "Düz" },
+  ];
+  const pins: { id: PinPref; label: string; hint?: string }[] = [
+    { id: "auto", label: "Tema", hint: `Temanın raptiyesi (${PIN_NAMES[def.pin]})` },
+    { id: "amanita", label: "Amanita" },
+    { id: "classic", label: "Klasik" },
+    { id: "glass", label: "Cam" },
+    { id: "midnight", label: "Pastel" },
+  ];
 
   const off = phone ? { y: "100%" } : { x: "100%" };
   const t = reduce ? INSTANT : SPRING;
@@ -125,16 +146,20 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
           <section className="settings__sec">
             <p className="settings__label">Tema</p>
             <div className="settings__themes" role="group" aria-label="Tema">
-              {THEMES.map((t) => (
-                <button key={t.id} type="button" className="settings__theme" aria-pressed={prefs.theme === t.id} title={t.hint} onClick={() => prefs.setTheme(t.id)}>
-                  <span className="settings__swatch" aria-hidden>
-                    <i style={{ background: t.swatch.board }} />
-                    <i style={{ background: t.swatch.card }} />
-                    <i style={{ background: t.swatch.accent }} />
-                  </span>
-                  {t.short}
-                </button>
-              ))}
+              {THEMES.map((t) => {
+                const on = prefs.theme === "system" ? prefs.resolvedTheme === t.id : prefs.theme === t.id;
+                return (
+                  <button key={t.id} type="button" className="theme-card" aria-pressed={on} title={`${t.label} — ${t.hint}`} onClick={() => prefs.setTheme(t.id)}>
+                    {/* Küçük önizleme o temanın kendi token'larıyla: pano, kâğıt, vurgu ve raptiye */}
+                    <span className="theme-card__board" data-theme-scope={t.id} aria-hidden>
+                      <i className="theme-card__paper" />
+                      <Pin shape={t.pin} className="theme-card__pin" />
+                      <i className="theme-card__accent" />
+                    </span>
+                    {t.short}
+                  </button>
+                );
+              })}
             </div>
             <div className="settings__row">
               <span>
@@ -142,6 +167,20 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
                 <small>Açık modda Amanita, koyu modda Midnight Wood</small>
               </span>
               <Switch checked={prefs.theme === "system"} onChange={(on) => prefs.setTheme(on ? "system" : prefs.resolvedTheme)} label="Sisteme uy" />
+            </div>
+            <div className="settings__row settings__row--stack">
+              <span>
+                Pano dokusu
+                <small>Mantar · Ahşap · Cam · Düz</small>
+              </span>
+              <SegPicker label="Pano dokusu" value={prefs.texture} options={textures} onChange={prefs.setTexture} />
+            </div>
+            <div className="settings__row settings__row--stack">
+              <span>
+                Raptiye stili
+                <small>Temadan bağımsız seçilebilir</small>
+              </span>
+              <SegPicker label="Raptiye stili" value={prefs.pinStyle} options={pins} onChange={prefs.setPinStyle} />
             </div>
           </section>
 

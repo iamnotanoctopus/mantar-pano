@@ -1,6 +1,7 @@
 /* Amanita — Şirinler Ormanı — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
 :root,
-:root[data-theme="amanita"] {
+:root[data-theme="amanita"],
+[data-theme-scope="amanita"] {
   --zemin: #ebe4cf;
   --pano-yuzey: #c6ae78;
   --pano-doku: rgba(70,50,18,0.24);

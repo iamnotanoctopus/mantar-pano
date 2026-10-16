@@ -1,5 +1,6 @@
 /* Klasik Mantar Pano — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
-:root[data-theme="classic-cork"] {
+:root[data-theme="classic-cork"],
+[data-theme-scope="classic-cork"] {
   --zemin: #f3ece1;
   --pano-yuzey: #d9bb93;
   --pano-doku: rgba(92,58,24,0.22);

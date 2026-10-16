@@ -1,8 +1,8 @@
 {
   "name": "mantar-pano",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Notion ile canlı senkron çalışan, mantar pano hissiyatlı görev uygulaması (web).",
+  "description": "Notion ile canlı senkron çalışan tek mantar pano: Amanita raptiye, dört tema, yay fiziği (web).",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n api,web -c yellow,cyan \"npm:dev:server\" \"npm:dev:client\"",
@@ -16,6 +16,7 @@
     "build:artifact": "vite build -c vite.artifact.config.ts && node scripts/build-artifact.mjs",
     "build:themes": "node scripts/build-themes.mjs",
     "build:icons": "tsx scripts/build-icons.mjs",
+    "build:screenshots": "node scripts/build-screenshots.mjs",
     "build:static": "node scripts/build-static.mjs",
     "build:artifact:demo": "ARTIFACT_MODE=local vite build -c vite.artifact.config.ts && ARTIFACT_MODE=local node scripts/build-artifact.mjs"
   },

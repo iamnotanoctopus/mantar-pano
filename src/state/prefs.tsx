@@ -62,12 +62,15 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   const resolvedTexture: TextureId = prefs.texture === "auto" ? def.texture : prefs.texture;
   const resolvedPin: PinShape = prefs.pinStyle === "auto" ? def.pin : prefs.pinStyle;
 
+  /* Kök öznitelikleri: tema, pano dokusu ve raptiye stili CSS'e buradan iner */
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = resolvedTheme;
+    root.dataset.texture = resolvedTexture;
+    root.dataset.pin = resolvedPin;
     const zemin = getComputedStyle(root).getPropertyValue("--zemin").trim();
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", zemin || "#ebe4cf"));
-  }, [resolvedTheme]);
+  }, [resolvedTheme, resolvedTexture, resolvedPin]);
 
   const set = <K extends keyof Prefs>(k: K) => (v: Prefs[K]) => setPrefs((p) => ({ ...p, [k]: v }));
   const setTheme = useCallback(set("theme"), []);

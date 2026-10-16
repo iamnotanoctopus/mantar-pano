@@ -20,6 +20,12 @@
         if (t === "system") t = dark ? "midnight-wood" : "amanita";
         else if (ids.indexOf(t) < 0) t = t === "dark" ? "midnight-wood" : localStorage.getItem("mp.prefs") ? "classic-cork" : "amanita";
         document.documentElement.dataset.theme = t;
+        // Pano dokusu ve raptiye stili (src/lib/themes.ts varsayılanları)
+        var p = JSON.parse(localStorage.getItem("mp.prefs") || "{}") || {};
+        var tex = { amanita: "mantar", "classic-cork": "mantar", "cupertino-glass": "cam", "midnight-wood": "ahsap" };
+        var pin = { amanita: "amanita", "classic-cork": "classic", "cupertino-glass": "glass", "midnight-wood": "midnight" };
+        document.documentElement.dataset.texture = p.v === 2 && p.texture && p.texture !== "auto" ? p.texture : tex[t];
+        document.documentElement.dataset.pin = p.v === 2 && p.pinStyle && p.pinStyle !== "auto" ? p.pinStyle : pin[t];
       } catch (e) {}
     </script>
   </head>

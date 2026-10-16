@@ -1,5 +1,6 @@
 /* Midnight Wood — design/tokens.json'dan üretildi (npm run build:themes). Elle düzenleme. */
-:root[data-theme="midnight-wood"] {
+:root[data-theme="midnight-wood"],
+[data-theme-scope="midnight-wood"] {
   --zemin: #141210;
   --pano-yuzey: #2a1f17;
   --pano-doku: rgba(255,225,190,0.07);
