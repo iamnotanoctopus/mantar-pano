@@ -3,6 +3,7 @@ import { STATUS_DOING, STATUS_DONE, type Schema, type Task } from "@shared/types
 import { dayLabel } from "@/lib/dates";
 import { colorVar, formatDuration } from "@/lib/format";
 import { IconCheck, IconClock } from "./icons";
+import { Pin } from "./Pin";
 import "./TaskCard.css";
 
 export interface TaskCardProps {
@@ -65,7 +66,7 @@ export const TaskCard = memo(function TaskCard({
       role="button"
       aria-label={task.title}
     >
-      {variant === "board" && <span className="pin" aria-hidden />}
+      {variant === "board" && <Pin />}
       <div className="card__main">
         <button
           type="button"

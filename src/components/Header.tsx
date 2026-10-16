@@ -7,8 +7,8 @@ import { THEMES } from "@/lib/themes";
 import { VIEWS, type ViewId } from "@/lib/views";
 import { usePrefs } from "@/state/prefs";
 import { useToast } from "./Toast";
+import { Logo } from "./Logo";
 import {
-  BrandPin,
   IconDevice,
   IconNudge,
   IconBoard,
@@ -46,9 +46,11 @@ interface Props {
   searchRef: React.RefObject<HTMLInputElement | null>;
   view: ViewId;
   setView: (v: ViewId) => void;
+  /** Kart eklenince / iğnelenince artar: logo seker */
+  pinPulse: number;
 }
 
-export function Header({ query, onQuery, onNew, onNudge, syncedAt, fetching, error, searchRef, view, setView }: Props) {
+export function Header({ query, onQuery, onNew, onNudge, syncedAt, fetching, error, searchRef, view, setView, pinPulse }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
@@ -57,10 +59,9 @@ export function Header({ query, onQuery, onNew, onNudge, syncedAt, fetching, err
 
   return (
     <header className="hdr">
-      <div className="hdr__brand">
-        <BrandPin />
-        <h1 className="hdr__title">Mantar Pano</h1>
-      </div>
+      <h1 className="hdr__brand">
+        <Logo pulse={pinPulse} />
+      </h1>
 
       <nav className="hdr__tabs hide-mobile" aria-label="Görünümler">
         {VIEWS.map((v) => {

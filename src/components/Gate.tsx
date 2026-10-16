@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { appKey } from "@/data/http";
-import { BrandPin } from "./icons";
+import { LogoMark } from "./Logo";
 import "./Gate.css";
 
 /** APP_PASSWORD tanımlı sunucular için tek seferlik şifre ekranı. */
@@ -18,7 +18,7 @@ export function Gate({ wrong }: { wrong: boolean }) {
   return (
     <div className="gate">
       <form className="gate__card" onSubmit={submit}>
-        <BrandPin width={40} height={40} />
+        <LogoMark size={36} />
         <h1 className="gate__title">Mantar Pano</h1>
         <p className="muted">Bu pano şifreyle korunuyor.</p>
         <input

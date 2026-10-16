@@ -1,0 +1,42 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--murekkep);
+}
+.logo__mark {
+  flex: none;
+  display: block;
+  transform-origin: 50% 85%;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}
+.logo__word {
+  font: var(--yazi-marka);
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" var(--yazi-marka-opsz);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+/* Kart eklendi / iğnelendi: scale 1 → 1.12 → 1, düşük sönümlü yay eğrisi (yay-raptiye 520/18) */
+.logo[data-pinned] .logo__mark {
+  animation: logo-pin 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes logo-pin {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12) translateY(-2px);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo[data-pinned] .logo__mark {
+    animation: none;
+  }
+}

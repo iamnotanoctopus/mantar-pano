@@ -15,6 +15,7 @@
     "test": "tsx server/test/notionRepo.test.ts && tsx src/test/prefs.test.ts",
     "build:artifact": "vite build -c vite.artifact.config.ts && node scripts/build-artifact.mjs",
     "build:themes": "node scripts/build-themes.mjs",
+    "build:icons": "tsx scripts/build-icons.mjs",
     "build:static": "node scripts/build-static.mjs",
     "build:artifact:demo": "ARTIFACT_MODE=local vite build -c vite.artifact.config.ts && ARTIFACT_MODE=local node scripts/build-artifact.mjs"
   },
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.0",
+    "playwright-core": "1.56.1",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vite": "^7.1.0",

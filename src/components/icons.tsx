@@ -171,17 +171,3 @@ export const IconNudge = (p: P) => (
 );
 
 /** Marka: raptiye */
-export const BrandPin = (p: P) => (
-  <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden {...p}>
-    <defs>
-      <radialGradient id="mp-pin-h" cx="38%" cy="32%" r="70%">
-        <stop offset="0" stopColor="#ff8a7a" />
-        <stop offset=".55" stopColor="#d9452f" />
-        <stop offset="1" stopColor="#8e2417" />
-      </radialGradient>
-    </defs>
-    <path d="M32 36v22" stroke="#6b6158" strokeWidth="4" strokeLinecap="round" />
-    <ellipse cx="32" cy="38" rx="9" ry="3.2" fill="#b43b27" />
-    <circle cx="32" cy="24" r="14" fill="url(#mp-pin-h)" />
-  </svg>
-);

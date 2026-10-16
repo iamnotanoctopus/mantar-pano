@@ -19,6 +19,9 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--hdr-ink);
 }
 .hdr__title {
   font-size: 22px;

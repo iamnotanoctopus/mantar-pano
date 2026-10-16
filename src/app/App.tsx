@@ -39,6 +39,9 @@ export default function App() {
 
   const [query, setQuery] = useState("");
   const [drawer, setDrawer] = useState<DrawerRef | null>(null);
+  /* Kart eklendi / iğnelendi: logo seker */
+  const [pinPulse, setPinPulse] = useState(0);
+  const pinned = useCallback(() => setPinPulse((n) => n + 1), []);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const tasks = useMemo(() => tasksQ.data?.tasks ?? [], [tasksQ.data]);
@@ -74,17 +77,19 @@ export default function App() {
   const quickAdd = useCallback(
     (input: TaskInput) => {
       play("pin");
+      pinned();
       create.mutate({ status: STATUS_TODO, priority: "Orta", ...input });
     },
-    [create, play],
+    [create, play, pinned],
   );
 
   const moveArea = useCallback(
     (t: Task, area: string | null) => {
       play("pop");
+      pinned();
       update.mutate({ id: t.id, patch: { area } });
     },
-    [update, play],
+    [update, play, pinned],
   );
 
   /* MSN usulü dürtme: elle (D / buton) ya da açılışta gecikmiş kart varsa (oturumda bir kez) */
@@ -163,6 +168,7 @@ export default function App() {
           searchRef={searchRef}
           view={view}
           setView={setView}
+          pinPulse={pinPulse}
         />
 
         <main className="main">
@@ -201,7 +207,10 @@ export default function App() {
       </div>
 
       <BottomNav onNew={() => newCard()} view={view} setView={setView} />
-      <TaskDrawer state={drawerState} schema={schema} onClose={closeDrawer} onCreated={() => play("pin")} onDeleted={() => play("delete")} />
+      <TaskDrawer state={drawerState} schema={schema} onClose={closeDrawer} onCreated={() => {
+          play("pin");
+          pinned();
+        }} onDeleted={() => play("delete")} />
     </>
   );
 }
