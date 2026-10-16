@@ -8,6 +8,7 @@ import { isDone, tasksByDate } from "@/lib/views";
 import { firstVisible, useDismiss } from "@/hooks/useDismiss";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
 import { IconChevronLeft, IconChevronRight } from "./icons";
+import { Scrim } from "./Scrim";
 import "./DatePopover.css";
 
 const DOW = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
@@ -101,7 +102,15 @@ export function DatePopover({ open, onClose, anchorRefs, weekStart, onPick, task
   return (
     <AnimatePresence>
       {open && (
-        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={instant} />
+        <Scrim
+          key="scrim"
+          className="sheet-scrim"
+          onClick={() => {
+            onClose();
+            back()?.focus();
+          }}
+          transition={instant}
+        />
       )}
       {open && (
       <motion.div

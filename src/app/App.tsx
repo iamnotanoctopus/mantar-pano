@@ -180,6 +180,9 @@ export default function App() {
       const k = e.key.toLocaleLowerCase("tr-TR");
       if (k === "n") {
         e.preventDefault();
+        // Açık Süz / takvim, açılan kart çekmecesinin altında kalmasın (Esc önce onları kapatıyordu)
+        setFilterOpen(false);
+        setDateOpen(false);
         newCard();
       } else if (k === "/") {
         e.preventDefault();
@@ -275,7 +278,11 @@ export default function App() {
               }}
               filterBtnRef={filterBtnRef}
               dateBtnRef={dateBtnRef}
-              onNew={() => newCard()}
+              onNew={() => {
+                setFilterOpen(false);
+                setDateOpen(false);
+                newCard();
+              }}
               {...weekProps}
             />
             <FilterMenu

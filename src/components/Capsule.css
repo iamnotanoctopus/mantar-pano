@@ -234,6 +234,14 @@
   }
 }
 
+/* Çok dar telefon (< 375px): seçili olmayan bölümler 44px dokunma hedefine iner, kapsülün kenar boşluğu kalsın */
+@media (max-width: 374px) {
+  .capsule__seg {
+    min-width: 44px;
+    padding: 0 10px;
+  }
+}
+
 /* Hareketi azalt: arama alanı ve menü işareti anında açılır */
 @media (prefers-reduced-motion: reduce) {
   .capsule__input,

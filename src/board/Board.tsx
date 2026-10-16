@@ -66,24 +66,23 @@ interface Bounds {
 }
 
 /**
- * Bırakılan kart: bırakıldığı yer, ölçek ve eğimle şeridine iner — başka şeride bırakıldıysa yeni yerine, iptal ya da
- * aynı şerit ise eski yerine. dnd-kit'in geri dönüş animasyonu kullanılmaz: kaynak kart görünüm dışındayken
- * scrollIntoView ile panoyu tek karede sıçratıyor, pano kayarken de eskimiş bir hedefe uçuyordu.
+ * Bırakılan kartın uçuşu. Her bırakma (başka şerit, aynı şerit, iptal, şerit dışı, bırakılamaz şerit) bir iniştir:
+ * kart bırakıldığı yerden, ölçek ve eğimiyle yerine yaylanır. Uçuş panonun dışında, gövdeye bağlı bir kopyada oynar
+ * (şeritlerin ve pano çerçevesinin kaydırma kutuları onu kırpmaz) ve hedef yuvayı her karede canlı izler; yuva bu
+ * sırada görünmezdir, uçuş bitince yerini ona bırakır. dnd-kit'in kendi geri dönüş animasyonu kullanılmaz: kaynak
+ * kart görünüm dışındayken scrollIntoView ile panoyu tek karede sıçratıyor, pano kayarken eskimiş bir hedefe uçuyordu.
  */
-interface Landing {
-  id: string;
-  /** İnişin oynadığı şerit; başka şeride taşınıyorsa kaynak şeritteki eski kopya o arada bırakıldığı yerde bekler */
+interface Flight {
+  /** Her bırakmada yeni: bitiş bildirimi eski bir uçuşa karışmasın */
+  key: number;
+  task: Task;
+  /** İnilecek şerit: başka şeride taşındıysa hedef, değilse kartın kendi şeridi */
   lane: string;
-  /** Başka şeride taşındı (yeni bir düğüm olarak iner) */
-  cross: boolean;
-  left: number;
-  top: number;
+  from: ClientRect;
   scale: number;
   rotate: number;
-  /** Kart tutulurken odaktaydı: eski kopya kalkınca odak yeni yerindeki karta geçer */
+  /** Kart tutulurken odaktaydı: odak yeni yerindeki karta geçer */
   refocus: boolean;
-  /** İnen kart ölçülünce (yer değiştirmeden önceki dikdörtgeniyle) çağrılır: pano kartı görünür kılacak kadar, aynı yayla kayar */
-  settle: (el: HTMLElement | null, rect?: DOMRect) => void;
 }
 
 /**
@@ -128,6 +127,12 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     [reduce, x, y],
   );
   const current = useCallback(() => goal.current ?? { x: x.get(), y: y.get() }, [x, y]);
+  /** Sınırlar o anki DOM'dan: bir bırakma şerit genişliklerini değiştirdiyse durum henüz güncellenmemiş olabilir */
+  const liveBounds = useCallback((): Bounds => {
+    const vp = viewRef.current;
+    const ct = contentRef.current;
+    return vp && ct ? { left: Math.min(0, vp.clientWidth - ct.offsetWidth), top: Math.min(0, vp.clientHeight - ct.offsetHeight) } : boundsRef.current;
+  }, []);
 
   /* Pano sınırları: içerik görünümden büyükse o kadar kaydırılabilir */
   useLayoutEffect(() => {
@@ -135,7 +140,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     const ct = contentRef.current;
     if (!vp || !ct) return;
     const measure = () => {
-      const b = { left: Math.min(0, vp.clientWidth - ct.offsetWidth), top: Math.min(0, vp.clientHeight - ct.offsetHeight) };
+      const b = liveBounds();
       setBounds((old) => (old.left === b.left && old.top === b.top ? old : b));
     };
     measure();
@@ -143,7 +148,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     ro.observe(vp);
     ro.observe(ct);
     return () => ro.disconnect();
-  }, []);
+  }, [liveBounds]);
 
   /* Sınır daralırsa (ör. daha az şerit) pano yaylanarak içeri döner — gidilen hedef sınır içindeyse dokunulmaz */
   useEffect(() => {
@@ -159,6 +164,17 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     if (nx !== c.x || ny !== c.y) panTo(nx, ny);
   }, [bounds, pan, current, panTo, x, y]);
 
+  /* Telefon: bırakınca şerit hizalanana kadar scroll-snap kapalı (anında yeniden yapışma sıçratıyordu) */
+  const [free, setFree] = useState(false);
+  const scrollAnim = useRef<AnimationPlaybackControls | null>(null);
+  /** Hizalama kaydırmasını keser (kullanıcı dokundu, odak değişti, yeni sürükleme): yapışma geri gelir */
+  const stopSettle = useCallback(() => {
+    if (!scrollAnim.current) return;
+    scrollAnim.current.stop();
+    scrollAnim.current = null;
+    setFree(false);
+  }, []);
+
   /* Odak (ya da Hafta'da hafta / seçilen gün) değişti: başa ya da `anchor` şeridine kay */
   useEffect(() => {
     const vp = viewRef.current;
@@ -170,10 +186,26 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
       const target = lane ? Math.max(0, lane.offsetLeft - 32) : 0;
       panTo(clamp(-target, Math.min(0, vp.clientWidth - ct.offsetWidth), 0), 0);
     } else {
+      stopSettle();
       vp.scrollTo({ left: lane ? Math.max(0, lane.offsetLeft - 16) : 0, behavior: reduce ? "auto" : "smooth" });
     }
     // yalnızca odak/hedef değişiminde çalışır (diğer değerler o anki hâlleriyle okunur)
   }, [focusKey, anchor]);
+
+  /* Telefon: kullanıcı panoya dokununca ya da kaydırınca süren hizalama kaydırması bırakılır */
+  useEffect(() => {
+    const vp = viewRef.current;
+    if (!vp || pan) return;
+    const opts = { passive: true } as const;
+    vp.addEventListener("touchstart", stopSettle, opts);
+    vp.addEventListener("wheel", stopSettle, opts);
+    vp.addEventListener("pointerdown", stopSettle, opts);
+    return () => {
+      vp.removeEventListener("touchstart", stopSettle);
+      vp.removeEventListener("wheel", stopSettle);
+      vp.removeEventListener("pointerdown", stopSettle);
+    };
+  }, [pan, stopSettle]);
 
   /* Trackpad/tekerlek: iki parmakla kaydırma panoyu kaydırır */
   useEffect(() => {
@@ -205,12 +237,13 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     const vp = viewRef.current;
     if (!vp || !pan || (vp.scrollLeft === 0 && vp.scrollTop === 0)) return;
     const c = current();
+    const b = liveBounds();
     const sl = vp.scrollLeft;
     const st = vp.scrollTop;
     vp.scrollLeft = 0;
     vp.scrollTop = 0;
-    panTo(clamp(c.x - sl, bounds.left, 0), clamp(c.y - st, bounds.top, 0), true);
-  }, [pan, bounds, current, panTo]);
+    panTo(clamp(c.x - sl, b.left, 0), clamp(c.y - st, b.top, 0), true);
+  }, [pan, current, liveBounds, panTo]);
 
   /** Masaüstü: öğe (ya da verilen dikdörtgen) görünüm dışındaysa pano onu görünür kılacak kadar yayla kayar */
   const reveal = useCallback(
@@ -219,6 +252,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
       if (!vp || !pan) return;
       absorbScroll();
       const c = current();
+      const b = liveBounds();
       const box = vp.getBoundingClientRect();
       const r = rect ?? el.getBoundingClientRect();
       // öğenin konumu o anki (belki yay ortasındaki) değere göre ölçüldü → hedef koordinatına çevir
@@ -230,32 +264,45 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
       if (r.left + ox + dx < box.left + FOCUS_MARGIN) dx = box.left + FOCUS_MARGIN - (r.left + ox);
       if (r.bottom + oy > box.bottom - FOCUS_MARGIN) dy = box.bottom - FOCUS_MARGIN - (r.bottom + oy);
       if (r.top + oy + dy < box.top + FOCUS_MARGIN) dy = box.top + FOCUS_MARGIN - (r.top + oy);
-      if (dx || dy) panTo(clamp(c.x + dx, bounds.left, 0), clamp(c.y + dy, bounds.top, 0));
+      if (dx || dy) panTo(clamp(c.x + dx, b.left, 0), clamp(c.y + dy, b.top, 0));
     },
-    [pan, bounds, absorbScroll, current, panTo, x, y],
+    [pan, absorbScroll, current, liveBounds, panTo, x, y],
+  );
+
+  /** Telefon: öğenin şeridi tam görünmüyorsa pano o şeride hizalanır */
+  const revealLane = useCallback(
+    (el: HTMLElement) => {
+      const vp = viewRef.current;
+      const lane = el.closest<HTMLElement>(".lane");
+      if (!vp || pan || !lane) return;
+      const box = vp.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      if (r.left >= box.left && r.right <= box.right) return;
+      stopSettle();
+      vp.scrollTo({ left: clamp(lane.offsetLeft - 16, 0, vp.scrollWidth - vp.clientWidth), behavior: reduce ? "auto" : "smooth" });
+    },
+    [pan, reduce, stopSettle],
   );
 
   /* Klavyeyle odaklanan öğe görünüm dışındaysa (sol ya da sağ, üst ya da alt) pano onu görünür kılacak kadar kayar */
   useEffect(() => {
     const vp = viewRef.current;
-    if (!vp || !pan) return;
+    if (!vp) return;
     const onFocus = (e: FocusEvent) => {
       const el = e.target as HTMLElement;
       // Fareyle tıklanan kart panoyu oynatmaz (tutup sürüklemeye başlarken kaymasın); yalnızca klavye odağı.
-      // İnmekte olan kart atlanır: konumu henüz yolda (dönüşümlü), hizalamayı inişin kendisi yapar.
+      // İnmekte olan kart atlanır: hizalamayı inişin kendisi yapar.
       if (!el.matches(":focus-visible") || el.closest("[data-landing]")) return;
-      requestAnimationFrame(() => reveal(el));
+      requestAnimationFrame(() => (pan ? reveal(el) : revealLane(el)));
     };
     vp.addEventListener("focusin", onFocus);
     return () => vp.removeEventListener("focusin", onFocus);
-  }, [pan, reveal]);
+  }, [pan, reveal, revealLane]);
 
   /* ----------------------------------------------------------- Sürükle-bırak */
   const [active, setActive] = useState<Task | null>(null);
-  const [landing, setLanding] = useState<Landing | null>(null);
-  /* Telefon: tutulurken ve bırakınca şerit hizalanana kadar scroll-snap kapalı (anında yeniden yapışma sıçratıyordu) */
-  const [free, setFree] = useState(false);
-  const scrollAnim = useRef<AnimationPlaybackControls | null>(null);
+  const [flight, setFlight] = useState<Flight | null>(null);
+  const flightKey = useRef(0);
   const liftScale = useMotionValue(1);
   const liftRotate = useMotionValue(0);
   const dir = useRef(0);
@@ -291,9 +338,9 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
   useEffect(() => stopEdgeLoop, []);
 
   /*
-   * Bırakınca: inen kartın şeridi görünür olsun. Telefonda pano o şeride (kart yoksa en yakın şeride) hizalanır,
-   * yapışma ancak sonra döner; masaüstünde kart görünüm dışındaysa pano kayar. Kaydırma, inişle AYNI anda ve AYNI
-   * yayla oynar: inişin başlangıç farkı kaydırmadan önce ölçüldüğü için kart ekranda tek bir yay çizer.
+   * İnen kart bulununca (bir kez): görünür olsun. Telefonda pano onun şeridine hizalanır, yapışma sonra döner;
+   * masaüstünde kart görünüm dışındaysa pano kayar. Kaydırma uçuşla AYNI anda ve AYNI yayla oynar; uçuş yuvayı
+   * canlı izlediği için kart ekranda tek bir yay çizer. Kart hiç bulunmazsa (null) telefonda en yakın şeride hizalanır.
    */
   const settleView = (el: HTMLElement | null, rect?: DOMRect) => {
     const vp = viewRef.current;
@@ -311,37 +358,36 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
       target = stops.reduce<number | undefined>((a, b) => (a === undefined || Math.abs(b - vp.scrollLeft) < Math.abs(a - vp.scrollLeft) ? b : a), undefined);
     }
     scrollAnim.current?.stop();
+    scrollAnim.current = null;
     if (target === undefined || Math.abs(target - vp.scrollLeft) < 1 || reduce) {
       if (target !== undefined) vp.scrollLeft = target;
       return setFree(false);
     }
-    scrollAnim.current = animate(vp.scrollLeft, target, {
+    const anim = animate(vp.scrollLeft, target, {
       ...SPRING,
       onUpdate: (v) => {
         vp.scrollLeft = v;
       },
-      onComplete: () => setFree(false),
+      onComplete: () => {
+        if (scrollAnim.current === anim) scrollAnim.current = null;
+        setFree(false);
+      },
     });
+    scrollAnim.current = anim;
   };
-  /** Bir inişe bağlı, bir kez çalışan hizalama; kart hiç ölçülmezse (ör. süzgeç dışında kaldı) kısa süre sonra yine çalışır */
-  const makeSettle = (): Landing["settle"] => {
-    let done = false;
-    const run = (el: HTMLElement | null, rect?: DOMRect) => {
-      if (done) return;
-      done = true;
-      window.clearTimeout(timer);
-      settleView(el, rect);
-    };
-    const timer = window.setTimeout(() => run(null), 400);
-    return run;
-  };
+  const settleRef = useRef(settleView);
+  settleRef.current = settleView;
+  const endFlight = useCallback((key: number) => setFlight((f) => (f?.key === key ? null : f)), []);
+  /* Uçuşu biten (yuvası görünür olan) son uçuş; kopya iki kare daha durur */
+  const [arrived, setArrived] = useState(0);
 
   const onDragStart = (e: DragStartEvent) => {
     setActive((e.active.data.current?.task as Task | undefined) ?? null);
     lastRect.current = e.active.rect.current.initial;
     scrollAnim.current?.stop();
+    scrollAnim.current = null;
     setFree(true);
-    setLanding(null);
+    setFlight(null);
     dir.current = 0;
     liftScale.jump(1);
     liftRotate.jump(0);
@@ -381,7 +427,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
 
   /**
    * Bırakma: başka şeride geçtiyse orada, değilse (iptal, aynı şerit, bırakılamaz şerit, şerit dışı) kendi şeridinde
-   * kart bırakıldığı noktadan iner. Tutulan kopya (DragOverlay) aynı karede kalkar; araya boş kare girmez.
+   * kart bırakıldığı noktadan iner. Tutulan kopya (DragOverlay) aynı karede kalkar, uçuş kopyası aynı yerde başlar.
    */
   const drop = (task: Task | undefined, rect: ClientRect | null, lane?: Lane) => {
     stopEdgeLoop();
@@ -397,7 +443,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
       return;
     }
     const refocus = Boolean((document.activeElement as HTMLElement | null)?.closest(`[data-card="${CSS.escape(task.id)}"]`));
-    setLanding({ id: task.id, lane: home.id, cross, left: r.left, top: r.top, scale: liftScale.get(), rotate: liftRotate.get(), refocus, settle: makeSettle() });
+    setFlight({ key: ++flightKey.current, task, lane: home.id, from: r, scale: liftScale.get(), rotate: liftRotate.get(), refocus });
   };
   const onDragEnd = (e: DragEndEvent) =>
     drop(
@@ -423,13 +469,10 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     if (added.length) setFresh(new Set(added));
   }, [tasks]);
   useEffect(() => {
-    if (!landing && fresh.size === 0) return;
-    const t = window.setTimeout(() => {
-      setLanding(null);
-      setFresh(new Set());
-    }, 900);
+    if (fresh.size === 0) return;
+    const t = window.setTimeout(() => setFresh(new Set()), 900);
     return () => window.clearTimeout(t);
-  }, [landing, fresh]);
+  }, [fresh]);
 
   /* İlk yüklemede kartlar canlandırılmaz; sonradan gelenler (odak, süzgeç, ekleme) yaylanarak girer */
   const [settled, setSettled] = useState(false);
@@ -497,8 +540,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
                   tilt={LANE_TILTS[i % LANE_TILTS.length]}
                   schema={schema}
                   showNotes={showNotes}
-                  landing={landing?.lane === lane.id ? landing : null}
-                  hold={landing && landing.lane !== lane.id ? landing : null}
+                  flying={flight && flight.key !== arrived ? flight.task.id : null}
                   phone={phone}
                   fresh={fresh}
                   animateIn={settled}
@@ -520,6 +562,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
           document.body,
         )}
       </DndContext>
+      {flight && <FlightCard key={flight.key} flight={flight} schema={schema} showNote={showNotes} reduce={reduce} settle={settleRef} onArrive={setArrived} onDone={endFlight} />}
       <span className="board__hint" aria-hidden>
         SÜRÜKLE · KAYDIR
       </span>
@@ -544,12 +587,105 @@ function DroppableMeasure({ api }: { api: RefObject<(() => void) | null> }) {
   return null;
 }
 
-/** Tutulan kart: ölçek ve eğim MotionValue'dan gelir (bırakma animasyonu sırasında da yaylanır) */
+/** Tutulan kart: ölçek ve eğim MotionValue'dan gelir */
 function LiftedCard({ task, schema, showNote, scale, rotate }: { task: Task; schema: Schema; showNote: boolean; scale: MotionValue<number>; rotate: MotionValue<number> }) {
   return (
     <motion.div className="card-lift" style={{ scale, rotate }}>
       <TaskCard task={task} schema={schema} showNote={showNote} onOpen={() => {}} onToggleDone={() => {}} dragging />
     </motion.div>
+  );
+}
+
+/**
+ * Uçuş kopyası (gövdeye bağlı, sabit konumlu, tıklanmaz). Hedef yuva bulunana kadar (başka şeride taşınırken iyimser
+ * güncelleme bir-iki kare sonra gelir) bırakıldığı yerde durur; bulununca konumu her karede yuvanın canlı dikdörtgeni +
+ * yaylanan fark olur. Fark sıfıra inince uçuş biter, yuva görünür.
+ */
+function FlightCard({
+  flight,
+  schema,
+  showNote,
+  reduce,
+  settle,
+  onArrive,
+  onDone,
+}: {
+  flight: Flight;
+  schema: Schema;
+  showNote: boolean;
+  reduce: boolean;
+  settle: RefObject<(el: HTMLElement | null, rect?: DOMRect) => void>;
+  /** Kopya yerine oturdu: yuva görünür olsun */
+  onArrive: (key: number) => void;
+  onDone: (key: number) => void;
+}) {
+  const { from } = flight;
+  const left = useMotionValue(from.left);
+  const top = useMotionValue(from.top);
+  const width = useMotionValue(from.width);
+  const scale = useMotionValue(flight.scale);
+  const rotate = useMotionValue(flight.rotate);
+
+  useLayoutEffect(() => {
+    const t = reduce ? INSTANT : SPRING;
+    /* Yuvaya göre kalan fark (yaylanarak sıfıra iner); konum = yuvanın canlı dikdörtgeni + fark */
+    const d = { x: 0, y: 0 };
+    const anims: AnimationPlaybackControls[] = [];
+    let raf = 0;
+    let found = false;
+    let finished = false;
+    const sel = `.lane[data-lane="${CSS.escape(flight.lane)}"] [data-card="${CSS.escape(flight.task.id)}"]`;
+    const tick = () => {
+      const el = document.querySelector<HTMLElement>(sel);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        if (!found) {
+          found = true;
+          window.clearTimeout(fallback);
+          d.x = from.left - r.left;
+          d.y = from.top - r.top;
+          anims.push(
+            animate(d.x, 0, { ...t, onUpdate: (v) => (d.x = v) }),
+            animate(d.y, 0, { ...t, onUpdate: (v) => (d.y = v) }),
+            animate(width, r.width, t),
+            animate(scale, 1, t),
+            animate(rotate, 0, t),
+          );
+          if (flight.refocus) el.querySelector<HTMLElement>(".card")?.focus({ preventScroll: true });
+          settle.current?.(el, r);
+          void Promise.all(anims).then(() => {
+            finished = true;
+            // Önce yuva görünür olur; kopya iki kare sonra kalkar (yuvanın anlık geçişi bir sonraki karede işler,
+            // ikisi aynı yerde üst üste durur — arada boş kare kalmaz)
+            onArrive(flight.key);
+            requestAnimationFrame(() => requestAnimationFrame(() => onDone(flight.key)));
+          });
+        }
+        left.set(r.left + d.x);
+        top.set(r.top + d.y);
+      }
+      if (!finished) raf = requestAnimationFrame(tick);
+    };
+    // Yuva hiç gelmezse (ör. kart süzgecin dışında kaldı) uçuş kalkar, pano en yakın şeride hizalanır
+    const fallback = window.setTimeout(() => {
+      if (found) return;
+      settle.current?.(null);
+      onDone(flight.key);
+    }, 600);
+    tick();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(fallback);
+      anims.forEach((a) => a.stop());
+    };
+    // yalnızca bu uçuş için bir kez
+  }, []);
+
+  return createPortal(
+    <motion.div className="card-flight" aria-hidden style={{ left, top, width, scale, rotate }}>
+      <TaskCard task={flight.task} schema={schema} showNote={showNote} onOpen={() => {}} onToggleDone={() => {}} pop={!reduce} />
+    </motion.div>,
+    document.body,
   );
 }
 
@@ -574,10 +710,8 @@ interface LaneProps {
   tilt: number;
   schema: Schema;
   showNotes: boolean;
-  /** Bu şeride inen kart (yalnızca inişin şeridine verilir) */
-  landing: Landing | null;
-  /** Başka şeride taşınan kartın bu şeritteki eski kopyası: yenisi gelene kadar bırakıldığı yerde bekler */
-  hold: Landing | null;
+  /** Uçuşta olan kart: yuvası (ve başka şeride taşınıyorsa eski kopyası) uçuş bitene kadar görünmez */
+  flying: string | null;
   /** Telefonda paylaşılan layoutId yok: kaydırıcı şeritler arası uçuşu zaten gizler, popLayout kaldırırken titretiyordu */
   phone: boolean;
   /** Yeni eklenen kartların kararlı anahtarları */
@@ -591,11 +725,10 @@ interface LaneProps {
   onNewWithDraft: (draft: TaskPatch & { title?: string }) => void;
 }
 
-const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, landing, hold, phone, fresh, animateIn, reduce, onOpen, onToggleDone, onQuickAdd, onNewWithDraft }: LaneProps) {
+const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, flying, phone, fresh, animateIn, reduce, onOpen, onToggleDone, onQuickAdd, onNewWithDraft }: LaneProps) {
   const { setNodeRef, isOver } = useDroppable({ id: lane.id, disabled: !lane.drop });
   const sectionRef = useMergedRef<HTMLElement>(ref, setNodeRef);
   const t = reduce ? INSTANT : SPRING;
-  const landed = landing?.id ?? null;
   const enterFrom = animateIn ? { opacity: 0, y: -6, scale: 0.96 } : false;
   return (
     /*
@@ -605,10 +738,11 @@ const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, la
     <motion.section
       ref={sectionRef}
       layout="position"
-      // animate hedefi şart: sönerken anahtarı geri gelen şerit (hızlı odak turu) çıkış değerlerinde görünmez kalıyordu
+      // animate hedefi şart: sönerken anahtarı geri gelen şerit (hızlı odak turu) çıkış değerlerinde görünmez kalıyordu.
+      // Telefonda yalnızca söner: ölçek, yapışma noktasını dönüşümlü kutudan birkaç piksel kaydırıyordu.
       initial={false}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
+      exit={phone ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
       transition={t}
       className={`lane ${isOver ? "is-over" : ""}`}
       data-lane={lane.id}
@@ -629,6 +763,7 @@ const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, la
         <AnimatePresence mode="popLayout" initial={animateIn}>
           {lane.tasks.map((task) => {
             const key = stableKey(task.id);
+            const isFlying = flying === task.id;
             return (
               <DraggableCard
                 key={key}
@@ -636,12 +771,11 @@ const LaneView = memo(function LaneView({ ref, lane, tilt, schema, showNotes, la
                 task={task}
                 schema={schema}
                 showNote={showNotes}
-                pop={landed === task.id || fresh.has(key)}
-                // Başka şeride inen kart kendi yayıyla iner; ikinci bir layout animasyonu karışmasın
-                shared={!phone && !(landed === task.id && landing?.cross)}
-                landing={landed === task.id ? landing : null}
-                hold={hold?.id === task.id ? hold : null}
-                enter={landed !== task.id}
+                pop={fresh.has(key)}
+                // Uçuştaki kartın yuvası layout yayına girmez: uçuş onu canlı izler, iki animasyon üst üste binmesin
+                shared={!phone && !isFlying}
+                flying={isFlying}
+                enter={!isFlying}
                 reduce={reduce}
                 onOpen={onOpen}
                 onToggleDone={onToggleDone}
@@ -668,8 +802,7 @@ function DraggableCard({
   showNote,
   pop,
   shared,
-  landing,
-  hold,
+  flying,
   enter,
   reduce,
   onOpen,
@@ -683,8 +816,8 @@ function DraggableCard({
   showNote: boolean;
   pop: boolean;
   shared: boolean;
-  landing: Landing | null;
-  hold: Landing | null;
+  /** Uçuş kopyası bu kartın yerine iniyor: yuva o sırada görünmez ve tıklanmaz */
+  flying: boolean;
   enter: boolean;
   reduce: boolean;
   onOpen: (t: Task) => void;
@@ -692,78 +825,28 @@ function DraggableCard({
 }) {
   // Yalnızca işaretçi dinleyicileri: kartın kendisi zaten odaklanabilir bir düğme (article role=button)
   const { setNodeRef, listeners, isDragging } = useDraggable({ id: task.id, data: { task } });
-  const node = useRef<HTMLDivElement | null>(null);
-  const slotRef = useMergedRef<HTMLDivElement>(ref, setNodeRef, node);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotate = useMotionValue(0);
-  const lift = useMotionValue(1);
-  /* Giriş sönmesi yaylı; sonraki saydamlık değişimleri (tutuldu, gizlendi, yerine oturdu) anında */
+  const slotRef = useMergedRef<HTMLDivElement>(ref, setNodeRef);
+  /* Giriş sönmesi yaylı; sonraki saydamlık değişimleri (tutuldu, uçuşta, yerine oturdu) anında */
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
   }, []);
-
-  /* İniş: bırakıldığı noktadan (ölçekli ve eğik) yerine yay 380/30/0.8 ile; pano da aynı anda aynı yayla hizalanır */
-  useLayoutEffect(() => {
-    const el = node.current;
-    if (!landing || !el) return;
-    const r = el.getBoundingClientRect();
-    // jump: iniş bırakıldığı yerde hızsız başlar (set'in sıçrama hızı yayı savururdu)
-    x.jump(landing.left - r.left);
-    y.jump(landing.top - r.top);
-    lift.jump(landing.scale);
-    rotate.jump(landing.rotate);
-    const t = reduce ? INSTANT : SPRING;
-    const anims = [animate(x, 0, t), animate(y, 0, t), animate(lift, 1, t), animate(rotate, 0, t)];
-    if (landing.refocus) el.querySelector<HTMLElement>(".card")?.focus({ preventScroll: true });
-    landing.settle(el, r);
-    return () => anims.forEach((a) => a.stop());
-    // yalnızca yeni bir iniş başladığında
-  }, [landing, reduce, x, y, lift, rotate]);
-
-  /*
-   * Başka şeride taşınan kartın eski kopyası: iyimser güncelleme gelene kadar (bir-iki kare) bırakıldığı yerde durur,
-   * gelince anında kalkar ve yenisi aynı noktadan iner — arada boş kare olmaz. Güncelleme gelmezse yerine yaylanır.
-   */
-  const held = useRef(false);
-  useLayoutEffect(() => {
-    const el = node.current;
-    if (hold && el) {
-      const r = el.getBoundingClientRect();
-      x.jump(hold.left - r.left + x.get());
-      y.jump(hold.top - r.top + y.get());
-      lift.jump(hold.scale);
-      rotate.jump(hold.rotate);
-      held.current = true;
-      return;
-    }
-    if (!hold && held.current) {
-      held.current = false;
-      const t = reduce ? INSTANT : SPRING;
-      animate(x, 0, t);
-      animate(y, 0, t);
-      animate(lift, 1, t);
-      animate(rotate, 0, t);
-    }
-  }, [hold, reduce, x, y, lift, rotate]);
 
   const t = reduce ? INSTANT : SPRING;
   return (
     <motion.div
       ref={slotRef}
       {...listeners}
-      style={{ x, y, rotate, scale: lift, zIndex: landing || hold ? 5 : undefined }}
       layoutId={shared ? `card-${layoutKey}` : undefined}
       layout={shared ? true : undefined}
       initial={enter ? { opacity: 0, scale: 0.96 } : false}
-      animate={{ opacity: isDragging ? GHOST_OPACITY : 1, scale: 1 }}
-      // Bekleyen eski kopya yenisi gelince anında kalkar; diğerleri (odak, süzgeç) yayla söner
-      exit={hold ? { opacity: 0, transition: INSTANT } : { opacity: 0, scale: 0.96, transition: t }}
-      transition={{ ...t, opacity: mounted.current ? INSTANT : t }}
+      animate={{ opacity: flying ? 0 : isDragging ? GHOST_OPACITY : 1, scale: 1 }}
+      // Uçuştaki kartın eski kopyası (başka şeride taşındı) zaten görünmez: anında kalkar; diğerleri yayla söner
+      exit={flying ? { opacity: 0, transition: INSTANT } : { opacity: 0, scale: 0.96, transition: t }}
+      transition={{ ...t, opacity: mounted.current || flying ? INSTANT : t }}
       className={`card-slot ${isDragging ? "is-ghost" : ""}`}
       data-card={task.id}
-      data-landing={landing ? "" : undefined}
+      data-landing={flying ? "" : undefined}
     >
       <TaskCard task={task} schema={schema} showNote={showNote} onOpen={onOpen} onToggleDone={onToggleDone} pop={pop && !reduce} />
     </motion.div>

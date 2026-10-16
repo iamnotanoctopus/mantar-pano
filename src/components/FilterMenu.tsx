@@ -6,6 +6,7 @@ import { areaColor, colorVar, plural } from "@/lib/format";
 import type { Filters } from "@/state/prefs";
 import { useDismiss } from "@/hooks/useDismiss";
 import { PHONE, useMediaQuery } from "@/hooks/useMediaQuery";
+import { Scrim } from "./Scrim";
 import { Switch } from "./Switch";
 import "./FilterMenu.css";
 
@@ -48,7 +49,15 @@ export function FilterMenu({ open, onClose, anchorRef, schema, filters, onFilter
   return (
     <AnimatePresence>
       {open && (
-        <motion.div key="scrim" className="sheet-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={instant} />
+        <Scrim
+          key="scrim"
+          className="sheet-scrim"
+          onClick={() => {
+            onClose();
+            anchorRef.current?.focus();
+          }}
+          transition={instant}
+        />
       )}
       {open && (
       <motion.div

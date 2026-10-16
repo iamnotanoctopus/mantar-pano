@@ -83,6 +83,16 @@
   border-radius: var(--radyus-kart);
   transition: background var(--dur) var(--ease);
 }
+/* Bırakılan kartın uçuş kopyası: gövdeye bağlı, hiçbir kaydırma kutusu kırpmaz (Board.tsx FlightCard) */
+.card-flight {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+}
+/* Uçuş sürerken yuva görünmez ve tıklanmaz (Esc ile iptalden sonra fare bırakılınca kart açılmasın) */
+.card-slot[data-landing] {
+  pointer-events: none;
+}
 .lane.is-over {
   background: color-mix(in srgb, var(--kart-yuzey) 22%, transparent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--lane-c) 45%, transparent);
@@ -206,8 +216,10 @@
     scroll-snap-align: start;
     overflow-y: auto;
     overscroll-behavior: contain;
-    /* yanlarda 5px: kartın odak halkası (2px, 2px aralıkla) şeridin kaydırıcısında kırpılmasın */
+    /* yanlarda 5px: kartın odak halkası (2px, 2px aralıkla) şeridin kaydırıcısında kırpılmasın;
+       klavyeyle dikey kayınca da raptiye (8px taşar) ve halka görünür kalsın */
     padding: 6px 5px 8px;
+    scroll-padding-block: 14px 10px;
     scrollbar-width: none;
   }
   .lane::-webkit-scrollbar {

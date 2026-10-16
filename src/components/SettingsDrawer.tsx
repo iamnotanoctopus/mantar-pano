@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { localApi } from "@/data";
 import { useMeta } from "@/hooks/useTasks";
@@ -39,6 +39,9 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const phone = useMediaQuery(PHONE);
   const reduce = useReducedMotion();
+  // Kapanırken (sönme sürerken) perde ve panel tıklama yakalamaz: dişliye hemen yeniden basılabilsin
+  const present = useIsPresent();
+  const gone = present ? undefined : ("none" as const);
   useDismiss(true, ref, onClose, [returnFocus]);
   // aria-modal: Tab / Shift+Tab çekmecenin içinde döner (arka plan ayrıca inert)
   useFocusTrap(ref);
@@ -126,7 +129,7 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
 
   return (
     <>
-      <motion.div className="drawer-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={t} />
+      <motion.div className="drawer-scrim" aria-hidden onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={t} style={{ pointerEvents: gone }} />
       <motion.aside
         ref={ref}
         id={SETTINGS_ID}
@@ -138,6 +141,7 @@ export function SettingsDrawer({ onClose, onNudge, returnFocus }: Props) {
         animate={{ x: 0, y: 0 }}
         exit={off}
         transition={t}
+        style={{ pointerEvents: gone }}
       >
         <i className="sheet-grip" aria-hidden />
         <div className="settings__head">
