@@ -84,12 +84,13 @@
   transition: background var(--dur) var(--ease);
 }
 /*
- * Bırakılan kartın uçuş kopyası: gövdeye bağlı, hiçbir kaydırma kutusu kırpmaz (Board.tsx FlightCard).
- * Panonun ve kapsülün üstünde, açılır menülerin (30) ve çekmecelerin (40+) altında.
+ * Bırakılan kartın uçuş kopyası: #root'a bağlı ve sabit konumlu, hiçbir kaydırma kutusu kırpmaz (Board.tsx FlightCard).
+ * #root kendi yığın bağlamıdır: kopya panonun üstünde, üst çubuk (20), kapsül (25), menüler ve çekmecelerin altında.
  */
 .card-flight {
   position: fixed;
-  z-index: 26;
+  z-index: 19;
+  touch-action: none;
 }
 /* Uçuş sürerken yuva görünmez ve tıklanmaz (Esc ile iptalden sonra fare bırakılınca kart açılmasın) */
 .card-slot[data-landing] {
@@ -219,7 +220,9 @@
     gap: 12px;
     scroll-snap-align: start;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    /* yalnızca dikeyde: yatay kaydırma uzun şeritte de panoya geçsin */
+    overscroll-behavior-x: auto;
+    overscroll-behavior-y: contain;
     /* yanlarda 5px: kartın odak halkası (2px, 2px aralıkla) şeridin kaydırıcısında kırpılmasın;
        klavyeyle dikey kayınca da raptiye (8px taşar) ve halka görünür kalsın */
     padding: 6px 5px 8px;

@@ -138,8 +138,13 @@ export default function App() {
 
   const changeFocus = useCallback(
     (f: Focus) => {
+      // Odak takvimin içindeyken (1/2 ile) takvim kapanırsa odak boşa düşmesin: seçilen odak düğmesine geçer
+      const inCal = document.activeElement?.closest("#mp-takvim");
       setFocus(f);
-      if (f !== "week") setDateOpen(false);
+      if (f !== "week") {
+        setDateOpen(false);
+        if (inCal) requestAnimationFrame(() => document.querySelector<HTMLElement>('.capsule__seg[aria-pressed="true"]')?.focus());
+      }
     },
     [setFocus],
   );

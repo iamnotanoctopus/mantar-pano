@@ -183,17 +183,27 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     [...vp.querySelectorAll<HTMLElement>(".board__lanes > .lane:not([data-motion-pop-id])")]
       .map((l) => laneStop(l, vp))
       .reduce<number | undefined>((a, b) => (a === undefined || Math.abs(b - vp.scrollLeft) < Math.abs(a - vp.scrollLeft) ? b : a), undefined);
+  /* Yapışma kapatma/açma doğrudan öğe üstünde, eşzamanlı: React'in is-free sınıfı bir çizim geç gelir ve yayın ilk
+     kareleri o arada zorunlu snap'e takılıp bir şerit sıçrıyordu */
+  const snapOff = (vp: HTMLElement) => {
+    vp.style.scrollSnapType = "none";
+    setFree(true);
+  };
+  const snapOn = (vp: HTMLElement) => {
+    vp.style.scrollSnapType = "";
+    setFree(false);
+  };
   const scrollToLeft = (target: number | undefined) => {
     const vp = viewRef.current;
     cancelWait();
     scrollAnim.current?.stop();
     scrollAnim.current = null;
-    if (!vp || target === undefined || Math.abs(target - vp.scrollLeft) < 1 || reduce) {
-      if (vp && target !== undefined) vp.scrollLeft = target;
-      setFree(false);
-      return;
+    if (!vp) return setFree(false);
+    if (target === undefined || Math.abs(target - vp.scrollLeft) < 1 || reduce) {
+      if (target !== undefined) vp.scrollLeft = target;
+      return snapOn(vp);
     }
-    setFree(true);
+    snapOff(vp);
     const anim = animate(vp.scrollLeft, target, {
       ...SPRING,
       onUpdate: (v) => {
@@ -202,7 +212,7 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
       onComplete: () => {
         if (scrollAnim.current !== anim) return;
         scrollAnim.current = null;
-        setFree(false);
+        snapOn(vp);
       },
     });
     scrollAnim.current = anim;
@@ -215,13 +225,22 @@ export function Board({ lanes, tasks, schema, showNotes, empty, focusKey, anchor
     scrollAnim.current = null;
     cancelWait();
     let down = e.type === "touchstart" || e.type === "pointerdown";
+    const start = vp.scrollLeft;
     let t = 0;
+    /* Snap gibi: belirgin bir kaydırma yönündeki bir sonraki şeride, küçük bir kıpırtı en yakın şeride */
+    const pick = () => {
+      const cur = vp.scrollLeft;
+      const stops = [...vp.querySelectorAll<HTMLElement>(".board__lanes > .lane:not([data-motion-pop-id])")].map((l) => laneStop(l, vp)).sort((a, b) => a - b);
+      if (cur - start > 30) return stops.find((x) => x >= cur - 1) ?? stops.at(-1);
+      if (cur - start < -30) return [...stops].reverse().find((x) => x <= cur + 1) ?? stops[0];
+      return nearestStop(vp);
+    };
     const arm = () => {
       window.clearTimeout(t);
       t = window.setTimeout(() => {
         if (down) return;
         cleanup();
-        scrollToLeft(nearestStop(vp));
+        scrollToLeft(pick());
       }, 140);
     };
     const onUp = () => {
@@ -735,7 +754,10 @@ function FlightCard({
   const width = useMotionValue(from.width);
   const scale = useMotionValue(flight.scale);
   const rotate = useMotionValue(flight.rotate);
-  const pressed = useRef(false);
+  const opacity = useMotionValue(1);
+  /* Kopyaya basılınca uçuş durur (parmağın/imlecin altından kaçmaz); bırakınca kısa dokunuş kartı açar, uçuş hemen biter */
+  const ctl = useRef({ held: false, finishNow: () => {} });
+  const press = useRef<{ t: number; x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
     const t = reduce ? INSTANT : SPRING;
@@ -746,6 +768,22 @@ function FlightCard({
     let slot: HTMLElement | null = null;
     let gen = 0;
     let finished = false;
+    let springsDone = false;
+    let lost = 0;
+    const arrive = () => {
+      if (finished) return;
+      finished = true;
+      // Önce yuva görünür olur; kopya iki kare sonra kalkar (yuvanın anlık geçişi bir sonraki karede işler,
+      // ikisi aynı yerde üst üste durur — arada boş kare kalmaz)
+      onArrive(flight.key);
+      requestAnimationFrame(() => requestAnimationFrame(() => onDone(flight.key)));
+    };
+    ctl.current.finishNow = () => {
+      if (finished || !slot) return;
+      springs.forEach((a) => a.stop());
+      d.x = d.y = d.w = 0;
+      springsDone = true;
+    };
     const id = CSS.escape(flight.task.id);
     /* Sönmekte olan (popLayout) şeritlerdeki kopyalar sayılmaz; hedef şerit artık yoksa kart başka bir şeritte aranır */
     const find = () => {
@@ -764,19 +802,17 @@ function FlightCard({
         animate(d.w, 0, { ...t, onUpdate: (v) => (d.w = v) }),
       ];
       if (flight.refocus) el.querySelector<HTMLElement>(".card")?.focus({ preventScroll: true });
-      settle.current?.(el);
+      // Pano yalnızca ilk hedefe hizalanır: uçuş sırasında odak değiştiyse panoyu odağın kendi kaydırması yönetir
+      if (first) settle.current?.(el);
       void Promise.all(springs).then(() => {
-        if (g !== gen || finished) return;
-        finished = true;
-        // Önce yuva görünür olur; kopya iki kare sonra kalkar (yuvanın anlık geçişi bir sonraki karede işler,
-        // ikisi aynı yerde üst üste durur — arada boş kare kalmaz)
-        onArrive(flight.key);
-        requestAnimationFrame(() => requestAnimationFrame(() => onDone(flight.key)));
+        if (g === gen) springsDone = true;
       });
     };
     const tick = () => {
-      const el = find();
+      if (finished) return;
+      const el = ctl.current.held ? slot : find();
       if (el) {
+        lost = 0;
         const r = el.getBoundingClientRect();
         if (el !== slot) {
           if (!slot) {
@@ -787,18 +823,26 @@ function FlightCard({
           aim(el, r, !slot);
           slot = el;
         }
-        left.set(r.left + d.x);
-        top.set(r.top + d.y);
-        width.set(r.width + d.w);
+        if (!ctl.current.held) {
+          left.set(r.left + d.x);
+          top.set(r.top + d.y);
+          width.set(r.width + d.w);
+          if (springsDone) return arrive();
+        }
+      } else if (slot && ++lost > 2) {
+        // Kart uçuş sırasında odak/süzgeç dışına çıktı: diğer çıkan kartlar gibi söner
+        finished = true;
+        void animate(opacity, 0, t).then(() => onDone(flight.key));
+        return;
       }
-      if (!finished) raf = requestAnimationFrame(tick);
+      raf = requestAnimationFrame(tick);
     };
-    // Yuva hiç gelmezse (ör. kart süzgecin dışında kaldı) uçuş kalkar, pano en yakın şeride hizalanır
+    // Yuva hiç gelmezse (ör. kart süzgecin dışında kaldı) uçuş söner, pano en yakın şeride hizalanır
     const fallback = window.setTimeout(() => {
-      if (slot) return;
+      if (slot || finished) return;
       finished = true;
       settle.current?.(null);
-      onDone(flight.key);
+      void animate(opacity, 0, t).then(() => onDone(flight.key));
     }, 600);
     tick();
     return () => {
@@ -809,17 +853,44 @@ function FlightCard({
     // yalnızca bu uçuş için bir kez
   }, []);
 
+  const release = (open: boolean) => {
+    const p = press.current;
+    press.current = null;
+    ctl.current.held = false;
+    if (open && p) {
+      // Bu dokunuşun ardından gelen click (dokunmatikte parmağın altındaki karta düşebiliyordu) yutulur
+      const swallow = (e: Event) => {
+        e.stopPropagation();
+        e.preventDefault();
+      };
+      window.addEventListener("click", swallow, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 500);
+      onOpen(task);
+    }
+    ctl.current.finishNow();
+  };
+
+  // #root içine: uygulamanın yığın bağlamında, panonun üstünde ama üst çubuk, menüler ve çekmecelerin altında
   return createPortal(
     <motion.div
       className="card-flight"
-      style={{ left, top, width, scale, rotate }}
-      onPointerDown={() => {
-        pressed.current = true;
+      aria-hidden
+      style={{ left, top, width, scale, rotate, opacity }}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        press.current = { t: performance.now(), x: e.clientX, y: e.clientY };
+        ctl.current.held = true;
       }}
+      onPointerUp={(e) => {
+        const p = press.current;
+        // Kısa ve kıpırtısız basış = tıklama (uzun basış tutup sürükleme niyetidir, kartı açmaz)
+        release(Boolean(p && performance.now() - p.t < 300 && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8));
+      }}
+      onPointerCancel={() => release(false)}
     >
-      <TaskCard task={task} schema={schema} showNote={showNote} onOpen={(t) => pressed.current && onOpen(t)} onToggleDone={() => {}} pop={!reduce} />
+      <TaskCard task={task} schema={schema} showNote={showNote} onOpen={() => {}} onToggleDone={() => {}} pop={!reduce} />
     </motion.div>,
-    document.body,
+    document.getElementById("root") ?? document.body,
   );
 }
 
